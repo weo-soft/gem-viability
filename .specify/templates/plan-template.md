@@ -31,7 +31,7 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+Verify alignment with `.specify/memory/constitution.md`: **Code Quality**, **Testing Standards**, **User Experience Consistency**, **Performance Requirements**. Document any exception or justification in Complexity Tracking.
 
 ## Project Structure
 

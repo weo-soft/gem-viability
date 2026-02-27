@@ -1,0 +1,36 @@
+---
+description: Project Development Guidelines
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# skill-support-compatibility-viewer Development Guidelines
+
+Auto-generated from all feature plans. Last updated: 2026-02-27
+
+## Active Technologies
+
+- JavaScript (ES module), HTML5, CSS3 + Vite (build/dev), minimal runtime deps (e.g. no framework; optional small lib for Lua parsing or use pre-built JSON from script) (001-gem-compatibility-viewer)
+
+## Project Structure
+
+```text
+backend/
+frontend/
+tests/
+```
+
+## Commands
+
+npm test && npm run lint
+
+## Code Style
+
+JavaScript (ES module), HTML5, CSS3: Follow standard conventions
+
+## Recent Changes
+
+- 001-gem-compatibility-viewer: Added JavaScript (ES module), HTML5, CSS3 + Vite (build/dev), minimal runtime deps (e.g. no framework; optional small lib for Lua parsing or use pre-built JSON from script)
+
+<!-- MANUAL ADDITIONS START -->
+<!-- MANUAL ADDITIONS END -->
