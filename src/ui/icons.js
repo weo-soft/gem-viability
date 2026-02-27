@@ -42,6 +42,10 @@ export function getGemIconUrl(gem) {
   }
 
   const path = subfolder ? `${folder}/${subfolder}/${fileName}` : `${folder}/${fileName}`;
-  return `/assets/images/${path}`;
+  const base =
+    typeof import.meta !== 'undefined' && import.meta.env?.BASE_URL
+      ? import.meta.env.BASE_URL.replace(/\/$/, '')
+      : '';
+  return `${base}/assets/images/${path}`;
 }
 
