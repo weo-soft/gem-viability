@@ -11,7 +11,7 @@ const ROOT = path.join(__dirname, '..');
 const SKILL_DATA_DIR = path.join(ROOT, 'skill-data');
 const OUT_FILE = path.join(ROOT, 'public', 'gems.json');
 
-const COLOR_TO_STAT = { 1: 'str', 2: 'dex', 3: 'int' };
+const COLOR_TO_STAT = { 1: 'str', 2: 'dex', 3: 'int', 4: 'white' };
 
 /** Secondary actives (triggered/granted) and secondary supports excluded from processing and display. */
 const EXCLUDED_GEM_IDS = new Set([

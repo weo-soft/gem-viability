@@ -35,4 +35,10 @@ describe('getGemWikiUrl', () => {
       'https://www.poewiki.net/wiki/Impending_Doom_Support'
     );
   });
+
+  it('uses Portal_(skill_gem) for active skill gem Portal', () => {
+    expect(getGemWikiUrl('Portal', 'active')).toBe(
+      'https://www.poewiki.net/wiki/Portal_(skill_gem)'
+    );
+  });
 });

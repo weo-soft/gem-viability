@@ -2,6 +2,7 @@
  * Build the PoE Wiki URL for a gem.
  * Format: https://www.poewiki.net/wiki/{Name} with spaces as underscores and special chars encoded.
  * Support gems use the wiki page title with "_Support" suffix (e.g. Added_Chaos_Damage_Support).
+ * Active gem "Portal" uses Portal_(skill_gem) to disambiguate from the game mechanic.
  * @param {string} gemName
  * @param {string} [kind] - 'support' | 'active'; when 'support', appends _Support to the slug unless already present
  * @returns {string}
@@ -9,7 +10,9 @@
 export function getGemWikiUrl(gemName, kind) {
   if (!gemName) return 'https://www.poewiki.net/wiki/';
   let slug = gemName.replace(/ /g, '_');
-  if (kind === 'support' && !slug.endsWith('_Support')) {
+  if (kind !== 'support' && gemName === 'Portal') {
+    slug = 'Portal_(skill_gem)';
+  } else if (kind === 'support' && !slug.endsWith('_Support')) {
     slug = `${slug}_Support`;
   }
   return `https://www.poewiki.net/wiki/${encodeURIComponent(slug).replace(/'/g, '%27')}`;

@@ -3,10 +3,10 @@ import { getSupportsForActive, getActivesForSupport } from '../compatibility.js'
 import { createWikiLink } from '../utils/wiki.js';
 
 /** Render gem clusters by Int/Str/Dex with global variant filter checkboxes (normal, transfigured, vaal, awakened, trarthus, exceptional, legacy, recipeOnly). */
-const STAT_ORDER = ['int', 'str', 'dex'];
-const STAT_LABELS = { int: 'Intelligence', str: 'Strength', dex: 'Dexterity' };
-export const STAT_COLORS = { int: '#3366cc', str: '#cc3333', dex: '#33cc33' };
-export const STAT_ORDER_COUNTS = ['dex', 'int', 'str']; // Green, Blue, Red (matches sidebar order)
+const STAT_ORDER = ['int', 'str', 'dex', 'white'];
+const STAT_LABELS = { int: 'Intelligence', str: 'Strength', dex: 'Dexterity', white: 'White' };
+export const STAT_COLORS = { int: '#3366cc', str: '#cc3333', dex: '#33cc33', white: '#999999' };
+export const STAT_ORDER_COUNTS = ['dex', 'int', 'str', 'white']; // Green, Blue, Red, White (matches sidebar order)
 const VARIANT_GROUPS = [
   {
     label: 'Active',
@@ -135,7 +135,7 @@ function filterIdsByVariantForSupports(gemById, ids, variantFilters) {
 
 /** Count ids by primary stat. Uses Map for O(1) lookups. */
 export function countByStat(gemById, ids) {
-  const counts = { int: 0, str: 0, dex: 0 };
+  const counts = { int: 0, str: 0, dex: 0, white: 0 };
   for (const id of ids) {
     const g = gemById.get(id);
     if (g && g.primaryStat && counts[g.primaryStat] !== undefined) {
@@ -145,7 +145,7 @@ export function countByStat(gemById, ids) {
   return counts;
 }
 
-const PLACEHOLDER_COUNTS = { int: '—', str: '—', dex: '—' };
+const PLACEHOLDER_COUNTS = { int: '—', str: '—', dex: '—', white: '—' };
 
 function renderStatCountSpans(counts, parent, usePlaceholder = false) {
   const values = usePlaceholder ? PLACEHOLDER_COUNTS : counts;
@@ -216,7 +216,7 @@ export function renderClusters(gems, onSelectGem, variantFilters, onVariantFilte
 
   const gemById = new Map(allGems.map((g) => [g.id, g]));
 
-  const byStat = { int: [], str: [], dex: [] };
+  const byStat = { int: [], str: [], dex: [], white: [] };
   for (const g of gems) {
     const s = g.primaryStat || 'str';
     if (byStat[s]) byStat[s].push(g);
