@@ -2,6 +2,11 @@
   box-sizing: border-box;
 }
 
+:root {
+  /* Reserve space so sticky sidebar sits below the page header (search + version toggles) */
+  --sticky-header-height: 7rem;
+}
+
 body {
   font-family: system-ui, sans-serif;
   margin: 0;
@@ -24,9 +29,18 @@ body {
   }
 }
 
-.search-filter-bar {
+.sticky-header {
   grid-column: 1 / -1;
-  margin-bottom: 0.25rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: #1a1a1a;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #333;
+}
+
+.search-filter-bar {
+  margin-bottom: 0.5rem;
 }
 
 .search-filter-bar .search-input {
@@ -162,6 +176,9 @@ body {
 
 .gem-chip-count {
   font-weight: 600;
+  min-width: 2ch;
+  display: inline-block;
+  text-align: center;
 }
 
 .gem-wiki-link {
@@ -187,10 +204,37 @@ body {
   border-radius: 8px;
   padding: 1rem;
   height: fit-content;
-  position: sticky;
-  top: 1rem;
   overflow-x: hidden;
+  position: sticky;
+  top: var(--sticky-header-height);
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - var(--sticky-header-height) - 1rem);
+}
+
+.compat-panel-selected {
+  flex-shrink: 0;
+  padding: 0.5rem 0 0.75rem 0;
+  border-bottom: 1px solid #333;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.compat-panel-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.compat-panel-selected .gem-label {
+  flex: 1;
+  min-width: 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .compat-panel h3 {
@@ -202,8 +246,6 @@ body {
   list-style: none;
   margin: 0;
   padding: 0;
-  max-height: 70vh;
-  overflow-y: auto;
   overflow-x: hidden;
 }
 

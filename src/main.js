@@ -1,5 +1,5 @@
 import { loadGems } from './data/loader.js';
-import { renderClusters } from './ui/clusters.js';
+import { renderClusters, renderGlobalVariantCheckboxes, updateClusterCountsInPlace, isActiveVariant } from './ui/clusters.js';
 import { updateCompatibilityPanel, setSelectionVisual } from './ui/selection.js';
 
 const app = document.getElementById('app');
@@ -61,22 +61,50 @@ async function init() {
     return gems.filter((g) => g.name.toLowerCase().includes(q));
   }
 
-  function renderClustersSection() {
+  function renderClustersSection(opts = {}) {
     const filteredGems = getGemsFilteredBySearch();
-    const clustersEl = renderClusters(filteredGems, onSelectGem, variantFilters, onVariantFilterChange, gems);
+    const clustersEl = renderClusters(
+      filteredGems,
+      onSelectGem,
+      variantFilters,
+      onVariantFilterChange,
+      gems,
+      { ...opts, skipVariantFilters: true }
+    );
     const existing = layout.querySelector('.gem-clusters');
     if (existing) layout.replaceChild(clustersEl, existing);
     else layout.appendChild(clustersEl);
     if (selectedGem) setSelectionVisual(clustersEl, selectedGem);
     const panelEl = document.getElementById('compat-panel');
     if (panelEl) updateCompatibilityPanel(selectedGem, gems, panelEl, variantFilters);
+
+    if (opts.changedVariant) {
+      const ctx = {
+        filteredGems,
+        fullGems: gems,
+        variantFilters,
+        updateOnlyKind: isActiveVariant(opts.changedVariant) ? 'support' : 'active',
+      };
+      const schedule = typeof requestIdleCallback !== 'undefined'
+        ? (cb) => requestIdleCallback(cb, { timeout: 100 })
+        : (cb) => setTimeout(cb, 0);
+      schedule(() => {
+        const el = layout.querySelector('.gem-clusters');
+        if (el) updateClusterCountsInPlace(el, ctx);
+      });
+    }
   }
 
   function onVariantFilterChange(variant, checked) {
     variantFilters[variant] = checked;
-    // Defer heavy re-render so checkbox state updates immediately and UI stays responsive
-    requestAnimationFrame(() => renderClustersSection());
+    const opts = isActiveVariant(variant)
+      ? { usePlaceholderForSupportCounts: true, changedVariant: variant }
+      : { usePlaceholderForActiveCounts: true, changedVariant: variant };
+    renderClustersSection(opts);
   }
+
+  const stickyHeader = document.createElement('div');
+  stickyHeader.className = 'sticky-header';
 
   const searchBar = document.createElement('div');
   searchBar.className = 'search-filter-bar';
@@ -91,7 +119,12 @@ async function init() {
     renderClustersSection();
   });
   searchBar.appendChild(searchInput);
-  layout.insertBefore(searchBar, layout.firstChild);
+  stickyHeader.appendChild(searchBar);
+
+  const variantFiltersEl = renderGlobalVariantCheckboxes(variantFilters, onVariantFilterChange);
+  stickyHeader.appendChild(variantFiltersEl);
+
+  layout.insertBefore(stickyHeader, layout.firstChild);
 
   renderClustersSection();
 

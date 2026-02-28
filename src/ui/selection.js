@@ -42,6 +42,23 @@ function filterIdsByVariantForSupports(gemById, ids, variantFilters) {
  * @param {HTMLElement} panelEl
  * @param {{ normal?: boolean, transfigured?: boolean, vaal?: boolean, awakened?: boolean, trarthus?: boolean, exceptional?: boolean }} [variantFilters] Global variant toggles; when provided, filters both "Valid support gems" and "Compatible active gems".
  */
+function renderSelectedGemBlock(gem) {
+  const block = document.createElement('div');
+  block.className = 'compat-panel-selected';
+  const img = document.createElement('img');
+  img.className = 'gem-icon';
+  img.src = getGemIconUrl(gem);
+  img.alt = `${gem.name} icon`;
+  const span = document.createElement('span');
+  span.className = 'gem-label';
+  span.textContent = gem.name;
+  const wikiLink = createWikiLink(gem.name);
+  block.appendChild(img);
+  block.appendChild(span);
+  block.appendChild(wikiLink);
+  return block;
+}
+
 export function updateCompatibilityPanel(selectedGem, gems, panelEl, variantFilters) {
   panelEl.innerHTML = '';
   if (!selectedGem) {
@@ -53,6 +70,13 @@ export function updateCompatibilityPanel(selectedGem, gems, panelEl, variantFilt
   }
 
   const gemById = new Map(gems.map((g) => [g.id, g]));
+  const selectedGemData = gems.find((g) => g.id === selectedGem.id && g.kind === selectedGem.kind);
+  if (selectedGemData) {
+    panelEl.appendChild(renderSelectedGemBlock(selectedGemData));
+  }
+
+  const scrollWrap = document.createElement('div');
+  scrollWrap.className = 'compat-panel-scroll';
 
   if (selectedGem.kind === 'active') {
     const supportIds = getSupportsForActive(selectedGem.id, gems);
@@ -60,9 +84,9 @@ export function updateCompatibilityPanel(selectedGem, gems, panelEl, variantFilt
 
     const label = document.createElement('h3');
     label.textContent = 'Valid support gems';
-    panelEl.appendChild(label);
+    scrollWrap.appendChild(label);
     if (filteredIds.length === 0) {
-      panelEl.appendChild(renderEmptyState('supports'));
+      scrollWrap.appendChild(renderEmptyState('supports'));
     } else {
       const ul = document.createElement('ul');
       ul.className = 'compat-list';
@@ -84,7 +108,7 @@ export function updateCompatibilityPanel(selectedGem, gems, panelEl, variantFilt
           ul.appendChild(li);
         }
       }
-      panelEl.appendChild(ul);
+      scrollWrap.appendChild(ul);
     }
   } else {
     const activeIds = getActivesForSupport(selectedGem.id, gems);
@@ -92,9 +116,9 @@ export function updateCompatibilityPanel(selectedGem, gems, panelEl, variantFilt
 
     const label = document.createElement('h3');
     label.textContent = 'Compatible active gems';
-    panelEl.appendChild(label);
+    scrollWrap.appendChild(label);
     if (filteredIds.length === 0) {
-      panelEl.appendChild(renderEmptyState('actives'));
+      scrollWrap.appendChild(renderEmptyState('actives'));
     } else {
       const ul = document.createElement('ul');
       ul.className = 'compat-list';
@@ -116,9 +140,11 @@ export function updateCompatibilityPanel(selectedGem, gems, panelEl, variantFilt
           ul.appendChild(li);
         }
       }
-      panelEl.appendChild(ul);
+      scrollWrap.appendChild(ul);
     }
   }
+
+  panelEl.appendChild(scrollWrap);
 }
 
 /**

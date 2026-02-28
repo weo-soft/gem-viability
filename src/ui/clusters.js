@@ -21,9 +21,13 @@ const defaultFilters = { normal: true, transfigured: true, vaal: true, awakened:
 /** Variants that apply to active gems only. Toggling these affects which actives are shown and support gem counts. */
 const ACTIVE_VARIANTS = ['normal', 'transfigured', 'vaal', 'trarthus'];
 
+export function isActiveVariant(variant) {
+  return ACTIVE_VARIANTS.includes(variant);
+}
+
 function noopVariantFilter() {}
 
-function renderGlobalVariantCheckboxes(variantFilters, onVariantFilterChange) {
+export function renderGlobalVariantCheckboxes(variantFilters, onVariantFilterChange) {
   const wrap = document.createElement('div');
   wrap.className = 'variant-filters variant-filters-global';
   const filters = variantFilters || defaultFilters;
@@ -103,9 +107,12 @@ function countByStat(gemById, ids) {
   return counts;
 }
 
-function renderStatCountSpans(counts, parent) {
+const PLACEHOLDER_COUNTS = { int: '—', str: '—', dex: '—' };
+
+function renderStatCountSpans(counts, parent, usePlaceholder = false) {
+  const values = usePlaceholder ? PLACEHOLDER_COUNTS : counts;
   for (const stat of STAT_ORDER_COUNTS) {
-    const n = counts[stat] ?? 0;
+    const n = values[stat] ?? (usePlaceholder ? '—' : 0);
     const span = document.createElement('span');
     span.className = 'gem-chip-count';
     span.dataset.stat = stat;
@@ -115,12 +122,59 @@ function renderStatCountSpans(counts, parent) {
   }
 }
 
-export function renderClusters(gems, onSelectGem, variantFilters, onVariantFilterChange, fullGems) {
+/**
+ * Update count spans in place. Used for async counter updates to avoid blocking the UI.
+ * Only updates counts that actually changed (active or support, based on which variant was toggled).
+ * @param {HTMLElement} clustersEl
+ * @param {{ filteredGems: Array, fullGems: Array, variantFilters: Object, updateOnlyKind?: 'active'|'support' }} ctx
+ */
+export function updateClusterCountsInPlace(clustersEl, ctx) {
+  const { filteredGems, fullGems, variantFilters, updateOnlyKind } = ctx;
+  const allGems = fullGems ?? filteredGems;
+  const gemById = new Map(allGems.map((g) => [g.id, g]));
+  const filters = variantFilters || defaultFilters;
+
+  const supportsCache = new Map();
+  const activesCache = new Map();
+
+  const buttons = clustersEl.querySelectorAll('.gem-btn[data-gem-id][data-gem-kind]');
+  for (const btn of buttons) {
+    const kind = btn.dataset.gemKind;
+    if (updateOnlyKind && kind !== updateOnlyKind) continue;
+
+    const id = btn.dataset.gemId;
+    const countWrap = btn.querySelector('.gem-chip-counts');
+    if (!countWrap) continue;
+
+    let counts;
+    if (kind === 'active') {
+      if (!supportsCache.has(id)) supportsCache.set(id, getSupportsForActive(id, allGems));
+      const filteredIds = filterIdsByVariantForSupports(gemById, supportsCache.get(id), filters);
+      counts = countByStat(gemById, filteredIds);
+    } else {
+      if (!activesCache.has(id)) activesCache.set(id, getActivesForSupport(id, allGems));
+      const filteredIds = filterIdsByVariantForActives(gemById, activesCache.get(id), filters);
+      counts = countByStat(gemById, filteredIds);
+    }
+
+    for (const stat of STAT_ORDER_COUNTS) {
+      const span = countWrap.querySelector(`[data-stat="${stat}"]`);
+      if (span) span.textContent = String(counts[stat] ?? 0);
+    }
+  }
+}
+
+export function renderClusters(gems, onSelectGem, variantFilters, onVariantFilterChange, fullGems, options = {}) {
+  const usePlaceholderForActiveCounts = options.usePlaceholderForActiveCounts === true;
+  const usePlaceholderForSupportCounts = options.usePlaceholderForSupportCounts === true;
+  const skipVariantFilters = options.skipVariantFilters === true;
   const container = document.createElement('div');
   container.className = 'gem-clusters';
   const allGems = fullGems ?? gems;
 
-  container.appendChild(renderGlobalVariantCheckboxes(variantFilters || defaultFilters, onVariantFilterChange || noopVariantFilter));
+  if (!skipVariantFilters) {
+    container.appendChild(renderGlobalVariantCheckboxes(variantFilters || defaultFilters, onVariantFilterChange || noopVariantFilter));
+  }
 
   const gemById = new Map(allGems.map((g) => [g.id, g]));
 
@@ -132,7 +186,6 @@ export function renderClusters(gems, onSelectGem, variantFilters, onVariantFilte
 
   const filters = variantFilters || defaultFilters;
 
-  // Pre-compute compatibility once per unique gem (filter-invariant)
   const supportsCache = new Map();
   const activesCache = new Map();
 
@@ -162,10 +215,15 @@ export function renderClusters(gems, onSelectGem, variantFilters, onVariantFilte
       const ul = document.createElement('ul');
       ul.className = 'gem-list active-list';
       for (const g of actives) {
-        if (!supportsCache.has(g.id)) supportsCache.set(g.id, getSupportsForActive(g.id, allGems));
-        const supportIds = supportsCache.get(g.id);
-        const filteredSupportIds = filterIdsByVariantForSupports(gemById, supportIds, filters);
-        const counts = countByStat(gemById, filteredSupportIds);
+        let counts;
+        if (usePlaceholderForActiveCounts) {
+          counts = PLACEHOLDER_COUNTS;
+        } else {
+          if (!supportsCache.has(g.id)) supportsCache.set(g.id, getSupportsForActive(g.id, allGems));
+          const supportIds = supportsCache.get(g.id);
+          const filteredSupportIds = filterIdsByVariantForSupports(gemById, supportIds, filters);
+          counts = countByStat(gemById, filteredSupportIds);
+        }
 
         const li = document.createElement('li');
         const btn = document.createElement('button');
@@ -192,7 +250,7 @@ export function renderClusters(gems, onSelectGem, variantFilters, onVariantFilte
 
         const countWrap = document.createElement('span');
         countWrap.className = 'gem-chip-counts';
-        renderStatCountSpans(counts, countWrap);
+        renderStatCountSpans(counts, countWrap, usePlaceholderForActiveCounts);
         btn.appendChild(countWrap);
 
         btn.addEventListener('click', () => onSelectGem(g.id, g.kind));
@@ -212,10 +270,15 @@ export function renderClusters(gems, onSelectGem, variantFilters, onVariantFilte
       const ul = document.createElement('ul');
       ul.className = 'gem-list support-list';
       for (const g of supports) {
-        if (!activesCache.has(g.id)) activesCache.set(g.id, getActivesForSupport(g.id, allGems));
-        const activeIds = activesCache.get(g.id);
-        const filteredActiveIds = filterIdsByVariantForActives(gemById, activeIds, filters);
-        const counts = countByStat(gemById, filteredActiveIds);
+        let counts;
+        if (usePlaceholderForSupportCounts) {
+          counts = PLACEHOLDER_COUNTS;
+        } else {
+          if (!activesCache.has(g.id)) activesCache.set(g.id, getActivesForSupport(g.id, allGems));
+          const activeIds = activesCache.get(g.id);
+          const filteredActiveIds = filterIdsByVariantForActives(gemById, activeIds, filters);
+          counts = countByStat(gemById, filteredActiveIds);
+        }
 
         const li = document.createElement('li');
         const btn = document.createElement('button');
@@ -242,7 +305,7 @@ export function renderClusters(gems, onSelectGem, variantFilters, onVariantFilte
 
         const countWrap = document.createElement('span');
         countWrap.className = 'gem-chip-counts';
-        renderStatCountSpans(counts, countWrap);
+        renderStatCountSpans(counts, countWrap, usePlaceholderForSupportCounts);
         btn.appendChild(countWrap);
 
         btn.addEventListener('click', () => onSelectGem(g.id, g.kind));
