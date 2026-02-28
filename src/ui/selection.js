@@ -1,14 +1,15 @@
 /**
  * Compatibility panel: shows valid supports for selected active, or compatible actives for selected support.
  * Updates on selection change; shows empty state when result list is empty.
- * Respects global variant filters (Normal, Transfigured, Vaal, Awakened, Trarthus, Exceptional).
+ * Respects global variant filters (Normal, Transfigured, Vaal, Normal Support, Awakened, Trarthus, Exceptional, Legacy, Recipe-Only).
  */
 import { getSupportsForActive, getActivesForSupport } from '../compatibility.js';
+import { countByStat, STAT_COLORS, STAT_ORDER_COUNTS } from './clusters.js';
 import { renderEmptyState } from './empty-state.js';
 import { getGemIconUrl } from './icons.js';
 import { createWikiLink } from '../utils/wiki.js';
 
-const defaultVariantFilters = { normal: true, transfigured: true, vaal: true, awakened: true, trarthus: true, exceptional: true };
+const defaultVariantFilters = { normal: true, transfigured: true, vaal: true, normalSupport: true, awakened: true, trarthus: true, exceptional: true, legacy: true, recipeOnly: true };
 
 const ACTIVE_VARIANTS = ['normal', 'transfigured', 'vaal', 'trarthus'];
 
@@ -30,7 +31,11 @@ function filterIdsByVariantForSupports(gemById, ids, variantFilters) {
     const g = gemById.get(id);
     if (!g) return false;
     const v = g.variant || 'normal';
-    if (filters[v] === false) return false;
+    if (v === 'normal') {
+      if (filters.normalSupport === false) return false;
+    } else if (filters[v] === false) {
+      return false;
+    }
     if (g.exceptional && filters.exceptional === false) return false;
     return true;
   });
@@ -40,7 +45,7 @@ function filterIdsByVariantForSupports(gemById, ids, variantFilters) {
  * @param {{ id: string, kind: string } | null} selectedGem
  * @param {Array<{id: string, name: string, kind: string, primaryStat: string, variant?: string}>} gems
  * @param {HTMLElement} panelEl
- * @param {{ normal?: boolean, transfigured?: boolean, vaal?: boolean, awakened?: boolean, trarthus?: boolean, exceptional?: boolean }} [variantFilters] Global variant toggles; when provided, filters both "Valid support gems" and "Compatible active gems".
+ * @param {{ normal?: boolean, transfigured?: boolean, vaal?: boolean, normalSupport?: boolean, awakened?: boolean, trarthus?: boolean, exceptional?: boolean, legacy?: boolean, recipeOnly?: boolean }} [variantFilters] Global variant toggles; when provided, filters both "Valid support gems" and "Compatible active gems".
  */
 function renderSelectedGemBlock(gem) {
   const block = document.createElement('div');
@@ -52,7 +57,7 @@ function renderSelectedGemBlock(gem) {
   const span = document.createElement('span');
   span.className = 'gem-label';
   span.textContent = gem.name;
-  const wikiLink = createWikiLink(gem.name);
+  const wikiLink = createWikiLink(gem.name, gem.kind);
   block.appendChild(img);
   block.appendChild(span);
   block.appendChild(wikiLink);
@@ -75,13 +80,32 @@ export function updateCompatibilityPanel(selectedGem, gems, panelEl, variantFilt
     panelEl.appendChild(renderSelectedGemBlock(selectedGemData));
   }
 
+  let filteredIds = [];
+  if (selectedGem.kind === 'active') {
+    const supportIds = getSupportsForActive(selectedGem.id, gems);
+    filteredIds = filterIdsByVariantForSupports(gemById, supportIds, variantFilters);
+  } else {
+    const activeIds = getActivesForSupport(selectedGem.id, gems);
+    filteredIds = filterIdsByVariantForActives(gemById, activeIds, variantFilters);
+  }
+
+  const counts = countByStat(gemById, filteredIds);
+  const countsRow = document.createElement('div');
+  countsRow.className = 'compat-panel-counts gem-chip-counts';
+  for (const stat of STAT_ORDER_COUNTS) {
+    const span = document.createElement('span');
+    span.className = 'gem-chip-count';
+    span.dataset.stat = stat;
+    span.textContent = String(counts[stat] ?? 0);
+    span.style.color = STAT_COLORS[stat];
+    countsRow.appendChild(span);
+  }
+  panelEl.appendChild(countsRow);
+
   const scrollWrap = document.createElement('div');
   scrollWrap.className = 'compat-panel-scroll';
 
   if (selectedGem.kind === 'active') {
-    const supportIds = getSupportsForActive(selectedGem.id, gems);
-    const filteredIds = filterIdsByVariantForSupports(gemById, supportIds, variantFilters);
-
     const label = document.createElement('h3');
     label.textContent = 'Valid support gems';
     scrollWrap.appendChild(label);
@@ -101,7 +125,7 @@ export function updateCompatibilityPanel(selectedGem, gems, panelEl, variantFilt
           const span = document.createElement('span');
           span.className = 'gem-label';
           span.textContent = g.name;
-          const wikiLink = createWikiLink(g.name);
+          const wikiLink = createWikiLink(g.name, g.kind);
           li.appendChild(img);
           li.appendChild(span);
           li.appendChild(wikiLink);
@@ -111,9 +135,6 @@ export function updateCompatibilityPanel(selectedGem, gems, panelEl, variantFilt
       scrollWrap.appendChild(ul);
     }
   } else {
-    const activeIds = getActivesForSupport(selectedGem.id, gems);
-    const filteredIds = filterIdsByVariantForActives(gemById, activeIds, variantFilters);
-
     const label = document.createElement('h3');
     label.textContent = 'Compatible active gems';
     scrollWrap.appendChild(label);
@@ -133,7 +154,7 @@ export function updateCompatibilityPanel(selectedGem, gems, panelEl, variantFilt
           const span = document.createElement('span');
           span.className = 'gem-label';
           span.textContent = g.name;
-          const wikiLink = createWikiLink(g.name);
+          const wikiLink = createWikiLink(g.name, g.kind);
           li.appendChild(img);
           li.appendChild(span);
           li.appendChild(wikiLink);

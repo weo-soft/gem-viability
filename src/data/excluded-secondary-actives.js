@@ -24,8 +24,10 @@ export const EXCLUDED_SECONDARY_ACTIVE_SKILL_IDS = new Set([
   'SupportBluntWeaponShockwave',
   'SupportWindburst',
   'TriggeredSupportWindburst',
+  'ThunderstormMiniTornados', // Thunderburst
   // Secondary supports
   'SupportAutomation', // Automation
+  'SupportAutoexertion', // Autoexertion
   'BrandSupport', // Arcanist Brand
   'SupportBrandSupport',
   'SupportDarkRitual', // Bane

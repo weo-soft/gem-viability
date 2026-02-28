@@ -12,9 +12,12 @@ const defaultVariantFilters = () => ({
   normal: true,
   transfigured: true,
   vaal: true,
+  normalSupport: true,
   awakened: true,
   trarthus: true,
   exceptional: true,
+  legacy: true,
+  recipeOnly: true,
 });
 let variantFilters = defaultVariantFilters();
 let searchQuery = '';
@@ -35,7 +38,11 @@ function showError(message, canRetry = true) {
 }
 
 function onSelectGem(id, kind) {
-  selectedGem = { id, kind };
+  if (selectedGem && selectedGem.id === id && selectedGem.kind === kind) {
+    selectedGem = null;
+  } else {
+    selectedGem = { id, kind };
+  }
   const clustersEl = app.querySelector('.gem-clusters');
   const panelEl = document.getElementById('compat-panel');
   if (clustersEl) setSelectionVisual(clustersEl, selectedGem);

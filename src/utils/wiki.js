@@ -1,12 +1,17 @@
 /**
  * Build the PoE Wiki URL for a gem.
  * Format: https://www.poewiki.net/wiki/{Name} with spaces as underscores and special chars encoded.
+ * Support gems use the wiki page title with "_Support" suffix (e.g. Added_Chaos_Damage_Support).
  * @param {string} gemName
+ * @param {string} [kind] - 'support' | 'active'; when 'support', appends _Support to the slug unless already present
  * @returns {string}
  */
-export function getGemWikiUrl(gemName) {
+export function getGemWikiUrl(gemName, kind) {
   if (!gemName) return 'https://www.poewiki.net/wiki/';
-  const slug = gemName.replace(/ /g, '_');
+  let slug = gemName.replace(/ /g, '_');
+  if (kind === 'support' && !slug.endsWith('_Support')) {
+    slug = `${slug}_Support`;
+  }
   return `https://www.poewiki.net/wiki/${encodeURIComponent(slug).replace(/'/g, '%27')}`;
 }
 
@@ -16,12 +21,13 @@ const EXTERNAL_LINK_SVG =
 /**
  * Create an anchor element with external link icon that opens the gem's PoE Wiki page.
  * @param {string} gemName
+ * @param {string} [kind] - 'support' | 'active'; when 'support', link targets the *_Support wiki page
  * @returns {HTMLAnchorElement}
  */
-export function createWikiLink(gemName) {
+export function createWikiLink(gemName, kind) {
   const a = document.createElement('a');
   a.className = 'gem-wiki-link';
-  a.href = getGemWikiUrl(gemName);
+  a.href = getGemWikiUrl(gemName, kind);
   a.target = '_blank';
   a.rel = 'noopener noreferrer';
   a.title = `Open ${gemName} on PoE Wiki`;

@@ -2,21 +2,39 @@ import { getGemIconUrl } from './icons.js';
 import { getSupportsForActive, getActivesForSupport } from '../compatibility.js';
 import { createWikiLink } from '../utils/wiki.js';
 
-/** Render gem clusters by Int/Str/Dex with global variant filter checkboxes (normal, transfigured, vaal, awakened, trarthus). */
+/** Render gem clusters by Int/Str/Dex with global variant filter checkboxes (normal, transfigured, vaal, awakened, trarthus, exceptional, legacy, recipeOnly). */
 const STAT_ORDER = ['int', 'str', 'dex'];
 const STAT_LABELS = { int: 'Intelligence', str: 'Strength', dex: 'Dexterity' };
-const STAT_COLORS = { int: '#3366cc', str: '#cc3333', dex: '#33cc33' };
-const STAT_ORDER_COUNTS = ['dex', 'str', 'int']; // Green, Red, Blue
-const VARIANT_OPTIONS = [
-  { key: 'normal', label: 'Normal' },
-  { key: 'transfigured', label: 'Transfigured' },
-  { key: 'vaal', label: 'Vaal' },
-  { key: 'awakened', label: 'Awakened' },
-  { key: 'trarthus', label: 'Trarthus' },
-  { key: 'exceptional', label: 'Exceptional' },
+export const STAT_COLORS = { int: '#3366cc', str: '#cc3333', dex: '#33cc33' };
+export const STAT_ORDER_COUNTS = ['dex', 'int', 'str']; // Green, Blue, Red (matches sidebar order)
+const VARIANT_GROUPS = [
+  {
+    label: 'Active',
+    options: [
+      { key: 'normal', label: 'Normal' },
+      { key: 'transfigured', label: 'Transfigured' },
+      { key: 'vaal', label: 'Vaal' },
+      { key: 'trarthus', label: 'Trarthus' },
+    ],
+  },
+  {
+    label: 'Support',
+    options: [
+      { key: 'normalSupport', label: 'Normal' },
+      { key: 'awakened', label: 'Awakened' },
+      { key: 'exceptional', label: 'Exceptional' },
+    ],
+  },
+  {
+    label: 'Others',
+    options: [
+      { key: 'legacy', label: 'Legacy' },
+      { key: 'recipeOnly', label: 'Recipe-Only' },
+    ],
+  },
 ];
 
-const defaultFilters = { normal: true, transfigured: true, vaal: true, awakened: true, trarthus: true, exceptional: true };
+const defaultFilters = { normal: true, transfigured: true, vaal: true, normalSupport: true, awakened: true, trarthus: true, exceptional: true, legacy: true, recipeOnly: true };
 
 /** Variants that apply to active gems only. Toggling these affects which actives are shown and support gem counts. */
 const ACTIVE_VARIANTS = ['normal', 'transfigured', 'vaal', 'trarthus'];
@@ -31,18 +49,30 @@ export function renderGlobalVariantCheckboxes(variantFilters, onVariantFilterCha
   const wrap = document.createElement('div');
   wrap.className = 'variant-filters variant-filters-global';
   const filters = variantFilters || defaultFilters;
-  for (const { key, label } of VARIANT_OPTIONS) {
-    const labelEl = document.createElement('label');
-    labelEl.className = 'variant-filter-label';
-    const cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.className = 'variant-filter-cb';
-    cb.dataset.variant = key;
-    cb.checked = filters[key] !== false;
-    cb.addEventListener('change', () => onVariantFilterChange(key, cb.checked));
-    labelEl.appendChild(cb);
-    labelEl.appendChild(document.createTextNode(` ${label}`));
-    wrap.appendChild(labelEl);
+  for (const group of VARIANT_GROUPS) {
+    const groupEl = document.createElement('div');
+    groupEl.className = 'variant-filter-group';
+    const groupLabel = document.createElement('span');
+    groupLabel.className = 'variant-filter-group-label';
+    groupLabel.textContent = group.label;
+    groupEl.appendChild(groupLabel);
+    const groupOptions = document.createElement('div');
+    groupOptions.className = 'variant-filter-group-options';
+    for (const { key, label } of group.options) {
+      const labelEl = document.createElement('label');
+      labelEl.className = 'variant-filter-label';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.className = 'variant-filter-cb';
+      cb.dataset.variant = key;
+      cb.checked = filters[key] !== false;
+      cb.addEventListener('change', () => onVariantFilterChange(key, cb.checked));
+      labelEl.appendChild(cb);
+      labelEl.appendChild(document.createTextNode(` ${label}`));
+      groupOptions.appendChild(labelEl);
+    }
+    groupEl.appendChild(groupOptions);
+    wrap.appendChild(groupEl);
   }
   return wrap;
 }
@@ -58,12 +88,16 @@ function filterByVariantForActive(list, variantFilters) {
   });
 }
 
-/** Filter support gems by support variant filters only (normal, awakened, exceptional). */
+/** Filter support gems by support variant filters only (normalSupport, awakened, exceptional, etc.). */
 function filterByVariantForSupport(list, variantFilters) {
   const filters = variantFilters || defaultFilters;
   return list.filter((g) => {
     const v = g.variant || 'normal';
-    if (filters[v] === false) return false;
+    if (v === 'normal') {
+      if (filters.normalSupport === false) return false;
+    } else if (filters[v] === false) {
+      return false;
+    }
     if (g.exceptional && filters.exceptional === false) return false;
     return true;
   });
@@ -89,14 +123,18 @@ function filterIdsByVariantForSupports(gemById, ids, variantFilters) {
     const g = gemById.get(id);
     if (!g) return false;
     const v = g.variant || 'normal';
-    if (filters[v] === false) return false;
+    if (v === 'normal') {
+      if (filters.normalSupport === false) return false;
+    } else if (filters[v] === false) {
+      return false;
+    }
     if (g.exceptional && filters.exceptional === false) return false;
     return true;
   });
 }
 
 /** Count ids by primary stat. Uses Map for O(1) lookups. */
-function countByStat(gemById, ids) {
+export function countByStat(gemById, ids) {
   const counts = { int: 0, str: 0, dex: 0 };
   for (const id of ids) {
     const g = gemById.get(id);
@@ -241,7 +279,7 @@ export function renderClusters(gems, onSelectGem, variantFilters, onVariantFilte
         span.className = 'gem-label';
         span.textContent = g.name;
 
-        const wikiLink = createWikiLink(g.name);
+        const wikiLink = createWikiLink(g.name, g.kind);
         wikiLink.addEventListener('click', (e) => e.stopPropagation());
 
         btn.appendChild(img);
@@ -296,7 +334,7 @@ export function renderClusters(gems, onSelectGem, variantFilters, onVariantFilte
         span.className = 'gem-label';
         span.textContent = g.name;
 
-        const wikiLink = createWikiLink(g.name);
+        const wikiLink = createWikiLink(g.name, g.kind);
         wikiLink.addEventListener('click', (e) => e.stopPropagation());
 
         btn.appendChild(img);

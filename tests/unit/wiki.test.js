@@ -23,4 +23,16 @@ describe('getGemWikiUrl', () => {
   it('returns base URL for empty name', () => {
     expect(getGemWikiUrl('')).toBe('https://www.poewiki.net/wiki/');
   });
+
+  it('appends _Support for support gems when name does not already end with Support', () => {
+    expect(getGemWikiUrl('Added Chaos Damage', 'support')).toBe(
+      'https://www.poewiki.net/wiki/Added_Chaos_Damage_Support'
+    );
+  });
+
+  it('does not double-append _Support when support gem name already ends with Support', () => {
+    expect(getGemWikiUrl('Impending Doom Support', 'support')).toBe(
+      'https://www.poewiki.net/wiki/Impending_Doom_Support'
+    );
+  });
 });

@@ -36,8 +36,10 @@ const EXCLUDED_GEM_IDS = new Set([
   'SupportBluntWeaponShockwave',
   'SupportWindburst',
   'TriggeredSupportWindburst',
+  'ThunderstormMiniTornados', // Thunderburst
   // Secondary supports
   'SupportAutomation', // Automation
+  'SupportAutoexertion', // Autoexertion
   'BrandSupport', // Arcanist Brand
   'SupportBrandSupport',
   'SupportDarkRitual', // Bane
@@ -51,6 +53,12 @@ const EXCLUDED_GEM_IDS = new Set([
   'ChannelledSnipeSupport', // Snipe
   'SupportIntuitiveLink', // Intuitive Link
 ]);
+
+/** Support gems that exist only as legacy (no longer obtainable normally). */
+const LEGACY_GEM_IDS = new Set(['SupportItemQuantity']);
+
+/** Support gems that exist only from recipes (e.g. vendor/bench), not as drops. */
+const RECIPE_ONLY_GEM_IDS = new Set(['SupportElementalPenetration', 'SupportBlockChanceReduction']);
 
 function extractSkillBlocks(content) {
   const blocks = [];
@@ -120,9 +128,11 @@ function parseSkill(id, block) {
     variant = 'trarthus';
   } else if (!isSupport) {
     // Active variants: Vaal vs transfigured vs normal
+    // Transfigured gems have Alt in id (e.g. EyeOfWinterAltX). Do not use " of " in name:
+    // that would misclassify base gems like "Herald of Agony", "Purity of Ice", "Eye of Winter".
     if (/SkillType\.Vaal/.test(block) || /^Vaal\s/.test(name)) {
       variant = 'vaal';
-    } else if (/Alt/.test(id) || / of /.test(name)) {
+    } else if (/Alt/.test(id)) {
       variant = 'transfigured';
     }
   }
@@ -140,6 +150,12 @@ function parseSkill(id, block) {
     } else if (isExceptionalAwakened) {
       exceptional = true;
     }
+  }
+
+  if (LEGACY_GEM_IDS.has(id)) {
+    variant = 'legacy';
+  } else if (RECIPE_ONLY_GEM_IDS.has(id)) {
+    variant = 'recipeOnly';
   }
 
   if (isSupport) {
