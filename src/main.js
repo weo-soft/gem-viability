@@ -17,6 +17,7 @@ const defaultVariantFilters = () => ({
   exceptional: true,
 });
 let variantFilters = defaultVariantFilters();
+let searchQuery = '';
 
 function showError(message, canRetry = true) {
   app.innerHTML = '';
@@ -54,11 +55,18 @@ async function init() {
   const layout = document.createElement('div');
   layout.className = 'layout';
 
+  function getGemsFilteredBySearch() {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return gems;
+    return gems.filter((g) => g.name.toLowerCase().includes(q));
+  }
+
   function renderClustersSection() {
-    const clustersEl = renderClusters(gems, onSelectGem, variantFilters, onVariantFilterChange);
+    const filteredGems = getGemsFilteredBySearch();
+    const clustersEl = renderClusters(filteredGems, onSelectGem, variantFilters, onVariantFilterChange);
     const existing = layout.querySelector('.gem-clusters');
     if (existing) layout.replaceChild(clustersEl, existing);
-    else layout.insertBefore(clustersEl, layout.firstChild);
+    else layout.appendChild(clustersEl);
     if (selectedGem) setSelectionVisual(clustersEl, selectedGem);
     const panelEl = document.getElementById('compat-panel');
     if (panelEl) updateCompatibilityPanel(selectedGem, gems, panelEl, variantFilters);
@@ -68,6 +76,21 @@ async function init() {
     variantFilters[variant] = checked;
     renderClustersSection();
   }
+
+  const searchBar = document.createElement('div');
+  searchBar.className = 'search-filter-bar';
+  const searchInput = document.createElement('input');
+  searchInput.type = 'search';
+  searchInput.className = 'search-input';
+  searchInput.placeholder = 'Search gem name...';
+  searchInput.value = searchQuery;
+  searchInput.autocomplete = 'off';
+  searchInput.addEventListener('input', () => {
+    searchQuery = searchInput.value;
+    renderClustersSection();
+  });
+  searchBar.appendChild(searchInput);
+  layout.insertBefore(searchBar, layout.firstChild);
 
   renderClustersSection();
 

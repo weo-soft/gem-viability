@@ -24,6 +24,32 @@ body {
   }
 }
 
+.search-filter-bar {
+  grid-column: 1 / -1;
+  margin-bottom: 0.25rem;
+}
+
+.search-filter-bar .search-input {
+  width: 100%;
+  max-width: 320px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.95rem;
+  border: 1px solid #444;
+  border-radius: 6px;
+  background: #252525;
+  color: #e0e0e0;
+}
+
+.search-filter-bar .search-input::placeholder {
+  color: #888;
+}
+
+.search-filter-bar .search-input:focus {
+  outline: none;
+  border-color: #0a7ea4;
+  box-shadow: 0 0 0 2px rgba(10, 126, 164, 0.2);
+}
+
 .gem-clusters {
   display: flex;
   flex-direction: column;
