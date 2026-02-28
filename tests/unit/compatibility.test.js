@@ -89,6 +89,34 @@ describe('getSupportsForActive', () => {
     expect(getSupportsForActive('Unknown', fixtureGems)).toEqual([]);
     expect(getSupportsForActive('SupportSpellDamage', fixtureGems)).toEqual([]);
   });
+
+  it('uses minionSkillTypes when present (e.g. Animate Weapon of Ranged Arms + projectile supports)', () => {
+    const animateWeaponRanged = {
+      id: 'AnimateWeaponAltY',
+      kind: 'active',
+      skillTypes: ['Triggerable', 'Duration', 'Minion', 'Spell'],
+      minionSkillTypes: ['Attack', 'ProjectilesFromUser', 'ThresholdJewelProjectile', 'ThresholdJewelRangedAttack'],
+      primaryStat: 'dex',
+    };
+    const supportVolley = {
+      id: 'SupportVolley',
+      kind: 'support',
+      requireSkillTypes: ['ProjectilesFromUser'],
+      excludeSkillTypes: [],
+      primaryStat: 'dex',
+    };
+    const supportPierce = {
+      id: 'SupportPierce',
+      kind: 'support',
+      requireSkillTypes: ['Projectile', 'ThresholdJewelProjectile', 'ThresholdJewelRangedAttack'],
+      excludeSkillTypes: [],
+      primaryStat: 'dex',
+    };
+    const gems = [...fixtureGems, animateWeaponRanged, supportVolley, supportPierce];
+    const supports = getSupportsForActive('AnimateWeaponAltY', gems);
+    expect(supports).toContain('SupportVolley');
+    expect(supports).toContain('SupportPierce');
+  });
 });
 
 describe('getActivesForSupport', () => {

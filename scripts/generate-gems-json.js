@@ -161,7 +161,8 @@ function parseSkill(id, block) {
   }
 
   const skillTypes = extractSkillTypesFromTable(block, 'skillTypes');
-  return {
+  const minionSkillTypes = extractSkillTypesFromTable(block, 'minionSkillTypes');
+  const out = {
     id,
     name,
     kind: 'active',
@@ -172,6 +173,10 @@ function parseSkill(id, block) {
     requireSkillTypes: [],
     excludeSkillTypes: [],
   };
+  if (minionSkillTypes && minionSkillTypes.length > 0) {
+    out.minionSkillTypes = minionSkillTypes;
+  }
+  return out;
 }
 
 function loadLuaFile(filePath) {

@@ -11,6 +11,7 @@ export default [
         document: 'readonly',
         fetch: 'readonly',
         console: 'readonly',
+        requestAnimationFrame: 'readonly',
       },
     },
     rules: {

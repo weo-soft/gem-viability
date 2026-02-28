@@ -6,13 +6,28 @@
 import { getSupportsForActive, getActivesForSupport } from '../compatibility.js';
 import { renderEmptyState } from './empty-state.js';
 import { getGemIconUrl } from './icons.js';
+import { createWikiLink } from '../utils/wiki.js';
 
 const defaultVariantFilters = { normal: true, transfigured: true, vaal: true, awakened: true, trarthus: true, exceptional: true };
 
-function filterIdsByVariant(gems, ids, variantFilters) {
+const ACTIVE_VARIANTS = ['normal', 'transfigured', 'vaal', 'trarthus'];
+
+function filterIdsByVariantForActives(gemById, ids, variantFilters) {
   const filters = variantFilters || defaultVariantFilters;
   return ids.filter((id) => {
-    const g = gems.find((x) => x.id === id);
+    const g = gemById.get(id);
+    if (!g) return false;
+    const v = g.variant || 'normal';
+    if (!ACTIVE_VARIANTS.includes(v)) return true;
+    if (filters[v] === false) return false;
+    return true;
+  });
+}
+
+function filterIdsByVariantForSupports(gemById, ids, variantFilters) {
+  const filters = variantFilters || defaultVariantFilters;
+  return ids.filter((id) => {
+    const g = gemById.get(id);
     if (!g) return false;
     const v = g.variant || 'normal';
     if (filters[v] === false) return false;
@@ -37,9 +52,12 @@ export function updateCompatibilityPanel(selectedGem, gems, panelEl, variantFilt
     return;
   }
 
+  const gemById = new Map(gems.map((g) => [g.id, g]));
+
   if (selectedGem.kind === 'active') {
     const supportIds = getSupportsForActive(selectedGem.id, gems);
-    const filteredIds = filterIdsByVariant(gems, supportIds, variantFilters);
+    const filteredIds = filterIdsByVariantForSupports(gemById, supportIds, variantFilters);
+
     const label = document.createElement('h3');
     label.textContent = 'Valid support gems';
     panelEl.appendChild(label);
@@ -59,8 +77,10 @@ export function updateCompatibilityPanel(selectedGem, gems, panelEl, variantFilt
           const span = document.createElement('span');
           span.className = 'gem-label';
           span.textContent = g.name;
+          const wikiLink = createWikiLink(g.name);
           li.appendChild(img);
           li.appendChild(span);
+          li.appendChild(wikiLink);
           ul.appendChild(li);
         }
       }
@@ -68,7 +88,8 @@ export function updateCompatibilityPanel(selectedGem, gems, panelEl, variantFilt
     }
   } else {
     const activeIds = getActivesForSupport(selectedGem.id, gems);
-    const filteredIds = filterIdsByVariant(gems, activeIds, variantFilters);
+    const filteredIds = filterIdsByVariantForActives(gemById, activeIds, variantFilters);
+
     const label = document.createElement('h3');
     label.textContent = 'Compatible active gems';
     panelEl.appendChild(label);
@@ -88,8 +109,10 @@ export function updateCompatibilityPanel(selectedGem, gems, panelEl, variantFilt
           const span = document.createElement('span');
           span.className = 'gem-label';
           span.textContent = g.name;
+          const wikiLink = createWikiLink(g.name);
           li.appendChild(img);
           li.appendChild(span);
+          li.appendChild(wikiLink);
           ul.appendChild(li);
         }
       }

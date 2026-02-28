@@ -63,7 +63,7 @@ async function init() {
 
   function renderClustersSection() {
     const filteredGems = getGemsFilteredBySearch();
-    const clustersEl = renderClusters(filteredGems, onSelectGem, variantFilters, onVariantFilterChange);
+    const clustersEl = renderClusters(filteredGems, onSelectGem, variantFilters, onVariantFilterChange, gems);
     const existing = layout.querySelector('.gem-clusters');
     if (existing) layout.replaceChild(clustersEl, existing);
     else layout.appendChild(clustersEl);
@@ -74,7 +74,8 @@ async function init() {
 
   function onVariantFilterChange(variant, checked) {
     variantFilters[variant] = checked;
-    renderClustersSection();
+    // Defer heavy re-render so checkbox state updates immediately and UI stays responsive
+    requestAnimationFrame(() => renderClustersSection());
   }
 
   const searchBar = document.createElement('div');

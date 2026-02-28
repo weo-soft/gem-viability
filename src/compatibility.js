@@ -75,30 +75,65 @@ function splitByOperator(arr, separator) {
 }
 
 /**
+ * Build the set of skill types to check for compatibility. Includes skillTypes and, when present, minionSkillTypes
+ * (e.g. Animate Weapon of Ranged Arms has minionSkillTypes including Projectile types, so projectile supports apply).
+ * @param {{ skillTypes?: string[], minionSkillTypes?: string[] }} active
+ * @returns {Set<string>}
+ */
+function getActiveTypesForCompatibility(active) {
+  const types = new Set(active.skillTypes || []);
+  const minionSkillTypes = active.minionSkillTypes || [];
+  for (const t of minionSkillTypes) types.add(t);
+  return types;
+}
+
+/**
+ * Deduplicate gem ids by display name. Multiple gems (e.g. Cast on Crit base + triggered) can share
+ * the same name but be valid via different skillTypes; show each name only once.
+ * @param {string[]} ids
+ * @param {Array<{id: string, name?: string}>} gems
+ * @returns {string[]}
+ */
+function deduplicateByIdentity(ids, gems) {
+  const seen = new Set();
+  const result = [];
+  for (const id of ids) {
+    const g = gems.find((x) => x.id === id);
+    const key = g?.name ?? id;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(id);
+  }
+  return result;
+}
+
+/**
  * @param {string} activeId
- * @param {Array<{id: string, kind: string, skillTypes: string[], requireSkillTypes?: string[], excludeSkillTypes?: string[]}>} gems
- * @returns {string[]} support gem ids that can support this active
+ * @param {Array<{id: string, name?: string, kind: string, skillTypes: string[], minionSkillTypes?: string[], requireSkillTypes?: string[], excludeSkillTypes?: string[]}>} gems
+ * @returns {string[]} support gem ids that can support this active (unique by display name)
  */
 export function getSupportsForActive(activeId, gems) {
   const active = gems.find((g) => g.id === activeId && g.kind === 'active');
   if (!active) return [];
-  const activeTypes = new Set(active.skillTypes || []);
-  return gems
+  const activeTypes = getActiveTypesForCompatibility(active);
+  const ids = gems
     .filter((g) => g.kind === 'support' && canSupport(activeTypes, g))
     .map((g) => g.id);
+  return deduplicateByIdentity(ids, gems);
 }
 
 /**
  * @param {string} supportId
- * @param {Array<{id: string, kind: string, skillTypes: string[], requireSkillTypes?: string[], excludeSkillTypes?: string[]}>} gems
- * @returns {string[]} active gem ids that this support can support
+ * @param {Array<{id: string, name?: string, kind: string, skillTypes: string[], minionSkillTypes?: string[], requireSkillTypes?: string[], excludeSkillTypes?: string[]}>} gems
+ * @returns {string[]} active gem ids that this support can support (unique by display name)
  */
 export function getActivesForSupport(supportId, gems) {
   const support = gems.find((g) => g.id === supportId && g.kind === 'support');
   if (!support) return [];
-  return gems
-    .filter((g) => g.kind === 'active' && canSupport(new Set(g.skillTypes || []), support))
+  const ids = gems
+    .filter((g) => g.kind === 'active' && canSupport(getActiveTypesForCompatibility(g), support))
     .map((g) => g.id);
+  return deduplicateByIdentity(ids, gems);
 }
 
 /**
