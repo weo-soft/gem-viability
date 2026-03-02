@@ -37,7 +37,7 @@ const EXCLUDED_GEM_IDS = new Set([
   'SupportWindburst',
   'TriggeredSupportWindburst',
   'ThunderstormMiniTornados', // Thunderburst
-  // Secondary supports
+  // Secondary supports (triggered/granted half of dual-skill gems; same display name as primary)
   'SupportAutomation', // Automation
   'SupportAutoexertion', // Autoexertion
   'BrandSupport', // Arcanist Brand
@@ -52,6 +52,13 @@ const EXCLUDED_GEM_IDS = new Set([
   'SupportGuardiansBlessingMinion',
   'ChannelledSnipeSupport', // Snipe
   'SupportIntuitiveLink', // Intuitive Link
+  'SupportCastWhileChannellingTriggered', // Cast while Channelling (triggered half)
+  'SupportCastWhileChannellingTriggeredPlus', // Awakened Cast While Channelling (triggered half)
+  'SupportCurseOnHitCurse', // Hextouch (triggered curse half)
+  'SupportCurseOnHitCursePlus', // Awakened Hextouch (triggered half)
+  'SupportCastOnMeleeKillTriggered', // Cast on Melee Kill (triggered half)
+  'SupportCastOnCritTriggered', // Cast On Critical Strike (triggered half)
+  'SupportCastOnCritTriggeredPlus', // Awakened Cast On Critical Strike (triggered half)
 ]);
 
 /** Support gems that exist only as legacy (no longer obtainable normally). */

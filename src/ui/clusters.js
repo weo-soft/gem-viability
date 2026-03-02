@@ -6,7 +6,10 @@ import { createWikiLink } from '../utils/wiki.js';
 const STAT_ORDER = ['int', 'str', 'dex', 'white'];
 const STAT_LABELS = { int: 'Intelligence', str: 'Strength', dex: 'Dexterity', white: 'White' };
 export const STAT_COLORS = { int: '#3366cc', str: '#cc3333', dex: '#33cc33', white: '#999999' };
-export const STAT_ORDER_COUNTS = ['dex', 'int', 'str', 'white']; // Green, Blue, Red, White (matches sidebar order)
+/** Order of stat counts on active gem chips (dex/int/str only). */
+export const STAT_ORDER_COUNTS = ['dex', 'int', 'str'];
+/** Order of stat counts on support gem chips (includes white active gems supportable). */
+export const STAT_ORDER_COUNTS_SUPPORT = ['dex', 'int', 'str', 'white'];
 const VARIANT_GROUPS = [
   {
     label: 'Active',
@@ -133,7 +136,7 @@ function filterIdsByVariantForSupports(gemById, ids, variantFilters) {
   });
 }
 
-/** Count ids by primary stat. Uses Map for O(1) lookups. */
+/** Count ids by primary stat (int/str/dex/white). White actives are candidates for support gems. Uses Map for O(1) lookups. */
 export function countByStat(gemById, ids) {
   const counts = { int: 0, str: 0, dex: 0, white: 0 };
   for (const id of ids) {
@@ -147,9 +150,15 @@ export function countByStat(gemById, ids) {
 
 const PLACEHOLDER_COUNTS = { int: '—', str: '—', dex: '—', white: '—' };
 
-function renderStatCountSpans(counts, parent, usePlaceholder = false) {
+/**
+ * @param {Object} counts
+ * @param {HTMLElement} parent
+ * @param {boolean} usePlaceholder
+ * @param {string[]} [statOrder] - which stats to render; use STAT_ORDER_COUNTS_SUPPORT for support chips (includes white)
+ */
+function renderStatCountSpans(counts, parent, usePlaceholder = false, statOrder = STAT_ORDER_COUNTS) {
   const values = usePlaceholder ? PLACEHOLDER_COUNTS : counts;
-  for (const stat of STAT_ORDER_COUNTS) {
+  for (const stat of statOrder) {
     const n = values[stat] ?? (usePlaceholder ? '—' : 0);
     const span = document.createElement('span');
     span.className = 'gem-chip-count';
@@ -185,6 +194,7 @@ export function updateClusterCountsInPlace(clustersEl, ctx) {
     if (!countWrap) continue;
 
     let counts;
+    const statOrder = kind === 'support' ? STAT_ORDER_COUNTS_SUPPORT : STAT_ORDER_COUNTS;
     if (kind === 'active') {
       if (!supportsCache.has(id)) supportsCache.set(id, getSupportsForActive(id, allGems));
       const filteredIds = filterIdsByVariantForSupports(gemById, supportsCache.get(id), filters);
@@ -195,7 +205,7 @@ export function updateClusterCountsInPlace(clustersEl, ctx) {
       counts = countByStat(gemById, filteredIds);
     }
 
-    for (const stat of STAT_ORDER_COUNTS) {
+    for (const stat of statOrder) {
       const span = countWrap.querySelector(`[data-stat="${stat}"]`);
       if (span) span.textContent = String(counts[stat] ?? 0);
     }
@@ -343,7 +353,7 @@ export function renderClusters(gems, onSelectGem, variantFilters, onVariantFilte
 
         const countWrap = document.createElement('span');
         countWrap.className = 'gem-chip-counts';
-        renderStatCountSpans(counts, countWrap, usePlaceholderForSupportCounts);
+        renderStatCountSpans(counts, countWrap, usePlaceholderForSupportCounts, STAT_ORDER_COUNTS_SUPPORT);
         btn.appendChild(countWrap);
 
         btn.addEventListener('click', () => onSelectGem(g.id, g.kind));

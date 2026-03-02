@@ -4,7 +4,7 @@
  * Respects global variant filters (Normal, Transfigured, Vaal, Normal Support, Awakened, Trarthus, Exceptional, Legacy, Recipe-Only).
  */
 import { getSupportsForActive, getActivesForSupport } from '../compatibility.js';
-import { countByStat, STAT_COLORS, STAT_ORDER_COUNTS } from './clusters.js';
+import { countByStat, STAT_COLORS, STAT_ORDER_COUNTS, STAT_ORDER_COUNTS_SUPPORT } from './clusters.js';
 import { renderEmptyState } from './empty-state.js';
 import { getGemIconUrl } from './icons.js';
 import { createWikiLink } from '../utils/wiki.js';
@@ -90,9 +90,10 @@ export function updateCompatibilityPanel(selectedGem, gems, panelEl, variantFilt
   }
 
   const counts = countByStat(gemById, filteredIds);
+  const statOrder = selectedGem.kind === 'support' ? STAT_ORDER_COUNTS_SUPPORT : STAT_ORDER_COUNTS;
   const countsRow = document.createElement('div');
   countsRow.className = 'compat-panel-counts gem-chip-counts';
-  for (const stat of STAT_ORDER_COUNTS) {
+  for (const stat of statOrder) {
     const span = document.createElement('span');
     span.className = 'gem-chip-count';
     span.dataset.stat = stat;

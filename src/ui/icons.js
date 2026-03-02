@@ -29,7 +29,13 @@ function nameToFileName(name) {
  */
 export function getGemIconUrl(gem) {
   const folder = gem.kind === 'active' ? 'active' : 'support';
-  const baseName = nameToFileName(gem.name || '');
+  // Support gem icons are stored as <bareName>.png (e.g. Barrage.png for "Barrage Support");
+  // the fetch script uses gem id with "Support" stripped (SupportBarrage → Barrage).
+  let displayName = gem.name || '';
+  if (gem.kind === 'support') {
+    displayName = displayName.replace(/\s+Support$/i, '');
+  }
+  const baseName = nameToFileName(displayName);
   const fileName = `${baseName}.png`;
 
   let subfolder = '';
