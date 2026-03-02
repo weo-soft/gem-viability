@@ -1,0 +1,5 @@
+# https://gem-viability.weosoft.org
+User-agent: *
+Allow: /
+
+Sitemap: https://gem-viability.weosoft.org/sitemap.xml

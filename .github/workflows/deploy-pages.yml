@@ -33,7 +33,8 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          BASE_PATH: /${{ github.event.repository.name }}/
+          # Root base path for custom domain (gem-viability.weosoft.org); CNAME in public/ is copied to dist
+          BASE_PATH: /
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
