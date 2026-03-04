@@ -34,9 +34,7 @@ export const EXCLUDED_SECONDARY_ACTIVE_SKILL_IDS = new Set([
   'SupportSpellslinger', // Spellslinger
   'BattlemagesCrySupport', // Battlemage's Cry
   'GeneralsCrySupport', // General's Cry
-  'SupportFistofWar', // Fist of War
-  'SupportGuardiansBlessing', // Guardian's Blessing
-  'SupportGuardiansBlessingMinion',
+  'SupportGuardiansBlessingMinion', // minion half of Guardian's Blessing only; SupportGuardiansBlessing is the regular support
   'ChannelledSnipeSupport', // Snipe
   'SupportIntuitiveLink', // Intuitive Link
   'SupportCastWhileChannellingTriggered', // Cast while Channelling (triggered half)

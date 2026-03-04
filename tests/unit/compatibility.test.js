@@ -118,6 +118,26 @@ describe('getSupportsForActive', () => {
     expect(supports).toContain('SupportPierce');
   });
 
+  it('allows support that excludes CreatesMinion when active has minionSkillTypes satisfying require (e.g. Multistrike + Raise Zombie)', () => {
+    const raiseZombie = {
+      id: 'RaiseZombie',
+      kind: 'active',
+      skillTypes: ['Spell', 'Minion', 'CreatesMinion', 'Triggerable', 'Duration'],
+      minionSkillTypes: ['Attack', 'Melee', 'MeleeSingleTarget', 'Multistrikeable'],
+      primaryStat: 'int',
+    };
+    const supportMultistrike = {
+      id: 'SupportMultistrike',
+      kind: 'support',
+      requireSkillTypes: ['Multistrikeable'],
+      excludeSkillTypes: ['Vaal', 'NonRepeatable', 'CreatesMinion', 'NOT', 'AND'],
+      primaryStat: 'str',
+    };
+    const gems = [...fixtureGems, raiseZombie, supportMultistrike];
+    const supports = getSupportsForActive('RaiseZombie', gems);
+    expect(supports).toContain('SupportMultistrike');
+  });
+
   it('ignores minionSkillTypes when support has ignoreMinionTypes: true', () => {
     const minionWithSpellMinionTypes = {
       id: 'SummonSkelly',

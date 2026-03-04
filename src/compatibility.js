@@ -75,18 +75,38 @@ function splitByOperator(arr, separator) {
 }
 
 /**
- * Build the set of skill types to check for compatibility. Includes skillTypes and, when the support does not
- * ignore minion types, minionSkillTypes (e.g. Animate Weapon of Ranged Arms + projectile supports).
- * When support has ignoreMinionTypes: true, only the active's skillTypes are used (MinionSkillTypes are ignored).
+ * Types used to check support's requireSkillTypes. Includes skillTypes and, when the support does not
+ * ignore minion types, minionSkillTypes (so e.g. Multistrike can match via minionSkillTypes.Multistrikeable).
  * @param {{ skillTypes?: string[], minionSkillTypes?: string[] }} active
- * @param {{ ignoreMinionTypes?: boolean }} [support] - when present and ignoreMinionTypes is true, minionSkillTypes are not included
+ * @param {{ ignoreMinionTypes?: boolean }} [support]
  * @returns {Set<string>}
  */
-function getActiveTypesForCompatibility(active, support) {
+function getActiveTypesForRequire(active, support) {
   const types = new Set(active.skillTypes || []);
   if (support?.ignoreMinionTypes) return types;
   const minionSkillTypes = active.minionSkillTypes || [];
   for (const t of minionSkillTypes) types.add(t);
+  return types;
+}
+
+/**
+ * Types used to check support's excludeSkillTypes. When the active has minionSkillTypes and the support does not
+ * ignore them, only minionSkillTypes are used—so a support that excludes e.g. CreatesMinion still matches
+ * minion skills whose minion attacks satisfy the support (e.g. Multistrike + Raise Zombie: exclude is checked
+ * against the minion's skill types, not the main skill's CreatesMinion).
+ * @param {{ skillTypes?: string[], minionSkillTypes?: string[] }} active
+ * @param {{ ignoreMinionTypes?: boolean }} [support]
+ * @returns {Set<string>}
+ */
+function getActiveTypesForExclude(active, support) {
+  if (support?.ignoreMinionTypes) {
+    return new Set(active.skillTypes || []);
+  }
+  const minionSkillTypes = active.minionSkillTypes || [];
+  if (minionSkillTypes.length > 0) {
+    return new Set(minionSkillTypes);
+  }
+  const types = new Set(active.skillTypes || []);
   return types;
 }
 
@@ -119,10 +139,7 @@ export function getSupportsForActive(activeId, gems) {
   const active = gems.find((g) => g.id === activeId && g.kind === 'active');
   if (!active) return [];
   const ids = gems
-    .filter(
-      (g) =>
-        g.kind === 'support' && canSupport(getActiveTypesForCompatibility(active, g), g)
-    )
+    .filter((g) => g.kind === 'support' && canSupport(active, g))
     .map((g) => g.id);
   return deduplicateByIdentity(ids, gems);
 }
@@ -136,24 +153,28 @@ export function getActivesForSupport(supportId, gems) {
   const support = gems.find((g) => g.id === supportId && g.kind === 'support');
   if (!support) return [];
   const ids = gems
-    .filter((g) =>
-      g.kind === 'active' && canSupport(getActiveTypesForCompatibility(g, support), support)
-    )
+    .filter((g) => g.kind === 'active' && canSupport(g, support))
     .map((g) => g.id);
   return deduplicateByIdentity(ids, gems);
 }
 
 /**
- * @param {Set<string>} activeTypes
- * @param {{ requireSkillTypes?: string[], excludeSkillTypes?: string[] }} support
+ * @param {{ skillTypes?: string[], minionSkillTypes?: string[] }} active
+ * @param {{ requireSkillTypes?: string[], excludeSkillTypes?: string[], ignoreMinionTypes?: boolean }} support
  * @returns {boolean}
  */
-function canSupport(activeTypes, support) {
-  const require = support.requireSkillTypes || [];
+function canSupport(active, support) {
+  const typesForRequire = getActiveTypesForRequire(active, support);
+  const typesForExclude = getActiveTypesForExclude(active, support);
   const exclude = support.excludeSkillTypes || [];
-  if (!requireSkillTypesMatch(activeTypes, require)) return false;
+  const requireMatch = support.requireSkillTypesAlternatives
+    ? support.requireSkillTypesAlternatives.some((alt) =>
+        requireSkillTypesMatch(typesForRequire, alt)
+      )
+    : requireSkillTypesMatch(typesForRequire, support.requireSkillTypes || []);
+  if (!requireMatch) return false;
   for (const e of exclude) {
-    if (!isOperator(e) && activeTypes.has(e)) return false;
+    if (!isOperator(e) && typesForExclude.has(e)) return false;
   }
   return true;
 }

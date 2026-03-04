@@ -46,9 +46,7 @@ const EXCLUDED_GEM_IDS = new Set([
   'SupportSpellslinger', // Spellslinger
   'BattlemagesCrySupport', // Battlemage's Cry
   'GeneralsCrySupport', // General's Cry
-  'SupportFistofWar', // Fist of War
-  'SupportGuardiansBlessing', // Guardian's Blessing
-  'SupportGuardiansBlessingMinion',
+  'SupportGuardiansBlessingMinion', // minion half of Guardian's Blessing only; SupportGuardiansBlessing is the regular support
   'ChannelledSnipeSupport', // Snipe
   'SupportIntuitiveLink', // Intuitive Link
   'SupportCastWhileChannellingTriggered', // Cast while Channelling (triggered half)
@@ -208,6 +206,65 @@ function loadLuaFile(filePath) {
   return extractSkillBlocks(content).map(({ id, block }) => parseSkill(id, block));
 }
 
+/** Guardian's Blessing: two Lua entries (blessing + minion) are one gem; merge require/exclude into the main entry. */
+function mergeGuardiansBlessing(allGems) {
+  const blessing = allGems.find((g) => g.id === 'SupportGuardiansBlessing');
+  const minion = allGems.find((g) => g.id === 'SupportGuardiansBlessingMinion');
+  if (!blessing || !minion) return;
+  blessing.requireSkillTypes = [
+    ...new Set([...(blessing.requireSkillTypes || []), ...(minion.requireSkillTypes || [])]),
+  ];
+  blessing.excludeSkillTypes = [
+    ...new Set([...(blessing.excludeSkillTypes || []), ...(minion.excludeSkillTypes || [])]),
+  ];
+}
+
+/** Cast on Melee Kill: main (melee) + triggered (spell) are one gem; support matches if either half matches. */
+function mergeCastOnMeleeKill(allGems) {
+  const main = allGems.find((g) => g.id === 'SupportCastOnMeleeKill');
+  const triggered = allGems.find((g) => g.id === 'SupportCastOnMeleeKillTriggered');
+  if (!main || !triggered) return;
+  main.requireSkillTypesAlternatives = [
+    main.requireSkillTypes?.length ? main.requireSkillTypes : [],
+    triggered.requireSkillTypes?.length ? triggered.requireSkillTypes : [],
+  ];
+  main.requireSkillTypes = [];
+  main.excludeSkillTypes = [
+    ...new Set([...(main.excludeSkillTypes || []), ...(triggered.excludeSkillTypes || [])]),
+  ];
+}
+
+/** Dual-skill support: merge triggered half require/exclude into main entry. Used for Cast while Channelling and Cast on Crit. */
+function mergeDualSkillSupport(allGems, mainId, triggeredId, awakenedMainId, triggeredPlusId) {
+  const main = allGems.find((g) => g.id === mainId);
+  const triggered = allGems.find((g) => g.id === triggeredId);
+  if (main && triggered) {
+    main.requireSkillTypesAlternatives = [
+      main.requireSkillTypes?.length ? main.requireSkillTypes : [],
+      triggered.requireSkillTypes?.length ? triggered.requireSkillTypes : [],
+    ];
+    main.requireSkillTypes = [];
+    main.excludeSkillTypes = [
+      ...new Set([...(main.excludeSkillTypes || []), ...(triggered.excludeSkillTypes || [])]),
+    ];
+  }
+  const awakenedMain = allGems.find((g) => g.id === awakenedMainId);
+  const triggeredPlus = allGems.find((g) => g.id === triggeredPlusId);
+  if (awakenedMain && triggeredPlus) {
+    awakenedMain.requireSkillTypesAlternatives = [
+      awakenedMain.requireSkillTypes?.length ? awakenedMain.requireSkillTypes : [],
+      triggeredPlus.requireSkillTypes?.length ? triggeredPlus.requireSkillTypes : [],
+    ];
+    awakenedMain.requireSkillTypes = [];
+    awakenedMain.excludeSkillTypes = [
+      ...new Set([
+        ...(awakenedMain.excludeSkillTypes || []),
+        ...(triggeredPlus.excludeSkillTypes || []),
+      ]),
+    ];
+  }
+}
+
 function main() {
   const files = fs.readdirSync(SKILL_DATA_DIR).filter((f) => f.endsWith('.lua'));
   const allGems = [];
@@ -216,6 +273,22 @@ function main() {
     const gems = loadLuaFile(filePath);
     allGems.push(...gems);
   }
+  mergeGuardiansBlessing(allGems);
+  mergeCastOnMeleeKill(allGems);
+  mergeDualSkillSupport(
+    allGems,
+    'SupportCastWhileChannelling',
+    'SupportCastWhileChannellingTriggered',
+    'SupportAwakenedCastWhileChannelling',
+    'SupportCastWhileChannellingTriggeredPlus'
+  );
+  mergeDualSkillSupport(
+    allGems,
+    'SupportCastOnCriticalStrike',
+    'SupportCastOnCritTriggered',
+    'SupportAwakenedCastOnCriticalStrike',
+    'SupportCastOnCritTriggeredPlus'
+  );
   const filtered = allGems.filter((g) => !EXCLUDED_GEM_IDS.has(g.id));
   const outDir = path.dirname(OUT_FILE);
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
