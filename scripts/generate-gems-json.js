@@ -34,8 +34,7 @@ const EXCLUDED_GEM_IDS = new Set([
   'AvengingFlame',
   'SupportShockwave',
   'SupportBluntWeaponShockwave',
-  'SupportWindburst',
-  'TriggeredSupportWindburst',
+  'TriggeredSupportWindburst', // triggered half of Windburst only; SupportWindburst is the regular support
   'ThunderstormMiniTornados', // Thunderburst
   // Secondary supports (triggered/granted half of dual-skill gems; same display name as primary)
   'SupportAutomation', // Automation
@@ -168,6 +167,7 @@ function parseSkill(id, block) {
   if (isSupport) {
     const requireSkillTypes = extractSkillTypesFromTable(block, 'requireSkillTypes');
     const excludeSkillTypes = extractSkillTypesFromTable(block, 'excludeSkillTypes');
+    const ignoreMinionTypes = /ignoreMinionTypes\s*=\s*true/.test(block);
     const out = {
       id,
       name,
@@ -180,6 +180,7 @@ function parseSkill(id, block) {
       excludeSkillTypes: excludeSkillTypes || [],
     };
     if (exceptional) out.exceptional = true;
+    if (ignoreMinionTypes) out.ignoreMinionTypes = true;
     return out;
   }
 

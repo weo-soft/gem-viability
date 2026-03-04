@@ -22,8 +22,7 @@ export const EXCLUDED_SECONDARY_ACTIVE_SKILL_IDS = new Set([
   'AvengingFlame',
   'SupportShockwave',
   'SupportBluntWeaponShockwave',
-  'SupportWindburst',
-  'TriggeredSupportWindburst',
+  'TriggeredSupportWindburst', // triggered half of Windburst only; SupportWindburst is the regular support
   'ThunderstormMiniTornados', // Thunderburst
   // Secondary supports (triggered/granted half of dual-skill gems; same display name as primary)
   'SupportAutomation', // Automation

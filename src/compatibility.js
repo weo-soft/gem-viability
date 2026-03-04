@@ -75,13 +75,16 @@ function splitByOperator(arr, separator) {
 }
 
 /**
- * Build the set of skill types to check for compatibility. Includes skillTypes and, when present, minionSkillTypes
- * (e.g. Animate Weapon of Ranged Arms has minionSkillTypes including Projectile types, so projectile supports apply).
+ * Build the set of skill types to check for compatibility. Includes skillTypes and, when the support does not
+ * ignore minion types, minionSkillTypes (e.g. Animate Weapon of Ranged Arms + projectile supports).
+ * When support has ignoreMinionTypes: true, only the active's skillTypes are used (MinionSkillTypes are ignored).
  * @param {{ skillTypes?: string[], minionSkillTypes?: string[] }} active
+ * @param {{ ignoreMinionTypes?: boolean }} [support] - when present and ignoreMinionTypes is true, minionSkillTypes are not included
  * @returns {Set<string>}
  */
-function getActiveTypesForCompatibility(active) {
+function getActiveTypesForCompatibility(active, support) {
   const types = new Set(active.skillTypes || []);
+  if (support?.ignoreMinionTypes) return types;
   const minionSkillTypes = active.minionSkillTypes || [];
   for (const t of minionSkillTypes) types.add(t);
   return types;
@@ -115,9 +118,11 @@ function deduplicateByIdentity(ids, gems) {
 export function getSupportsForActive(activeId, gems) {
   const active = gems.find((g) => g.id === activeId && g.kind === 'active');
   if (!active) return [];
-  const activeTypes = getActiveTypesForCompatibility(active);
   const ids = gems
-    .filter((g) => g.kind === 'support' && canSupport(activeTypes, g))
+    .filter(
+      (g) =>
+        g.kind === 'support' && canSupport(getActiveTypesForCompatibility(active, g), g)
+    )
     .map((g) => g.id);
   return deduplicateByIdentity(ids, gems);
 }
@@ -131,7 +136,9 @@ export function getActivesForSupport(supportId, gems) {
   const support = gems.find((g) => g.id === supportId && g.kind === 'support');
   if (!support) return [];
   const ids = gems
-    .filter((g) => g.kind === 'active' && canSupport(getActiveTypesForCompatibility(g), support))
+    .filter((g) =>
+      g.kind === 'active' && canSupport(getActiveTypesForCompatibility(g, support), support)
+    )
     .map((g) => g.id);
   return deduplicateByIdentity(ids, gems);
 }

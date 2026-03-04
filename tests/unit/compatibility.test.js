@@ -117,6 +117,36 @@ describe('getSupportsForActive', () => {
     expect(supports).toContain('SupportVolley');
     expect(supports).toContain('SupportPierce');
   });
+
+  it('ignores minionSkillTypes when support has ignoreMinionTypes: true', () => {
+    const minionWithSpellMinionTypes = {
+      id: 'SummonSkelly',
+      kind: 'active',
+      skillTypes: ['Spell', 'Minion', 'Duration'],
+      minionSkillTypes: ['Attack', 'Spell', 'Melee'],
+      primaryStat: 'int',
+    };
+    const supportRequiresSpell = {
+      id: 'SupportSpellOnly',
+      kind: 'support',
+      requireSkillTypes: ['Spell'],
+      excludeSkillTypes: [],
+      ignoreMinionTypes: true,
+      primaryStat: 'int',
+    };
+    const supportRequiresAttack = {
+      id: 'SupportAttackOnly',
+      kind: 'support',
+      requireSkillTypes: ['Attack'],
+      excludeSkillTypes: [],
+      ignoreMinionTypes: true,
+      primaryStat: 'str',
+    };
+    const gems = [...fixtureGems, minionWithSpellMinionTypes, supportRequiresSpell, supportRequiresAttack];
+    const supports = getSupportsForActive('SummonSkelly', gems);
+    expect(supports).toContain('SupportSpellOnly'); // Spell is in skillTypes
+    expect(supports).not.toContain('SupportAttackOnly'); // Attack only in minionSkillTypes, ignored
+  });
 });
 
 describe('getActivesForSupport', () => {
