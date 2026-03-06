@@ -21,6 +21,48 @@ const defaultVariantFilters = () => ({
 });
 let variantFilters = defaultVariantFilters();
 let searchQuery = '';
+let searchFilteredGems = [];
+
+const ACTIVE_COUNTS_FILTER_KEYS = ['normalSupport', 'awakened', 'exceptional', 'legacy', 'recipeOnly'];
+const SUPPORT_COUNTS_FILTER_KEYS = ['normal', 'transfigured', 'vaal', 'trarthus'];
+function makeCountsKey(filters, keys) {
+  return keys.map((k) => (filters?.[k] === false ? '0' : '1')).join('');
+}
+
+const SEARCH_DEBOUNCE_MS = 150;
+let searchDebounceTimer = null;
+let searchRunId = 0;
+
+function nextFrame() {
+  return new Promise((resolve) => {
+    if (typeof requestAnimationFrame !== 'undefined') requestAnimationFrame(() => resolve());
+    else setTimeout(resolve, 0);
+  });
+}
+
+function scheduleIdle(cb) {
+  if (typeof requestIdleCallback !== 'undefined') requestIdleCallback(cb, { timeout: 150 });
+  else setTimeout(cb, 0);
+}
+
+async function filterGemsBySearchAsync(all, query, runId) {
+  const q = query.trim().toLowerCase();
+  if (!q) return all;
+
+  const result = [];
+  const CHUNK = 750;
+  for (let i = 0; i < all.length; i += CHUNK) {
+    if (runId !== searchRunId) return null;
+    const end = Math.min(i + CHUNK, all.length);
+    for (let j = i; j < end; j++) {
+      const g = all[j];
+      const nameLower = g.nameLower ?? g.name?.toLowerCase?.() ?? '';
+      if (nameLower.includes(q)) result.push(g);
+    }
+    await nextFrame();
+  }
+  return result;
+}
 
 function showError(message, canRetry = true) {
   app.innerHTML = '';
@@ -57,26 +99,40 @@ async function init() {
     return;
   }
 
+  // Precompute lowercase names so filtering never allocates on each keystroke.
+  for (const g of gems) {
+    if (typeof g.name === 'string' && typeof g.nameLower !== 'string') g.nameLower = g.name.toLowerCase();
+  }
+  searchFilteredGems = gems;
+
+  // Cache chip counters so searching never recomputes them.
+  const countsCache = {
+    activeKey: makeCountsKey(variantFilters, ACTIVE_COUNTS_FILTER_KEYS),
+    supportKey: makeCountsKey(variantFilters, SUPPORT_COUNTS_FILTER_KEYS),
+    active: new Map(),
+    support: new Map(),
+  };
+
   app.innerHTML = '';
 
   const layout = document.createElement('div');
   layout.className = 'layout';
 
-  function getGemsFilteredBySearch() {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return gems;
-    return gems.filter((g) => g.name.toLowerCase().includes(q));
-  }
-
   function renderClustersSection(opts = {}) {
-    const filteredGems = getGemsFilteredBySearch();
+    const filteredGems = opts.filteredGems ?? searchFilteredGems ?? gems;
     const clustersEl = renderClusters(
       filteredGems,
       onSelectGem,
       variantFilters,
       onVariantFilterChange,
       gems,
-      { ...opts, skipVariantFilters: true }
+      {
+        usePlaceholderForActiveCounts: opts.usePlaceholderForActiveCounts === true,
+        usePlaceholderForSupportCounts: opts.usePlaceholderForSupportCounts === true,
+        countsCache,
+        useCachedCountsOnly: opts.useCachedCountsOnly === true,
+        skipVariantFilters: true,
+      }
     );
     const existing = layout.querySelector('.gem-clusters');
     if (existing) layout.replaceChild(clustersEl, existing);
@@ -90,12 +146,12 @@ async function init() {
         filteredGems,
         fullGems: gems,
         variantFilters,
-        updateOnlyKind: isActiveVariant(opts.changedVariant) ? 'support' : 'active',
+        countsCache,
+        updateOnlyKind: opts.changedVariant
+          ? (isActiveVariant(opts.changedVariant) ? 'support' : 'active')
+          : undefined,
       };
-      const schedule = typeof requestIdleCallback !== 'undefined'
-        ? (cb) => requestIdleCallback(cb, { timeout: 100 })
-        : (cb) => setTimeout(cb, 0);
-      schedule(() => {
+      scheduleIdle(() => {
         const el = layout.querySelector('.gem-clusters');
         if (el) updateClusterCountsInPlace(el, ctx);
       });
@@ -104,9 +160,22 @@ async function init() {
 
   function onVariantFilterChange(variant, checked) {
     variantFilters[variant] = checked;
+    if (isActiveVariant(variant)) {
+      const nextSupportKey = makeCountsKey(variantFilters, SUPPORT_COUNTS_FILTER_KEYS);
+      if (nextSupportKey !== countsCache.supportKey) {
+        countsCache.supportKey = nextSupportKey;
+        countsCache.support.clear();
+      }
+    } else {
+      const nextActiveKey = makeCountsKey(variantFilters, ACTIVE_COUNTS_FILTER_KEYS);
+      if (nextActiveKey !== countsCache.activeKey) {
+        countsCache.activeKey = nextActiveKey;
+        countsCache.active.clear();
+      }
+    }
     const opts = isActiveVariant(variant)
-      ? { usePlaceholderForSupportCounts: true, changedVariant: variant }
-      : { usePlaceholderForActiveCounts: true, changedVariant: variant };
+      ? { usePlaceholderForSupportCounts: true, changedVariant: variant, useCachedCountsOnly: true }
+      : { usePlaceholderForActiveCounts: true, changedVariant: variant, useCachedCountsOnly: true };
     renderClustersSection(opts);
   }
 
@@ -122,8 +191,29 @@ async function init() {
   searchInput.value = searchQuery;
   searchInput.autocomplete = 'off';
   searchInput.addEventListener('input', () => {
-    searchQuery = searchInput.value;
-    renderClustersSection();
+    const raw = searchInput.value;
+    if (searchDebounceTimer) globalThis.clearTimeout(searchDebounceTimer);
+    searchInput.classList.add('is-filtering');
+    const runId = ++searchRunId;
+    searchDebounceTimer = setTimeout(async () => {
+      // If a newer keystroke happened, drop this run.
+      if (runId !== searchRunId) return;
+      searchQuery = raw;
+
+      const filtered = await filterGemsBySearchAsync(gems, searchQuery, runId);
+      if (runId !== searchRunId || filtered === null) return;
+      searchFilteredGems = filtered;
+
+      renderClustersSection({
+        filteredGems: searchFilteredGems,
+        // Searching should never recompute chip counts; reuse cache only.
+        useCachedCountsOnly: true,
+      });
+
+      // Remove busy state once the DOM update is committed.
+      await nextFrame();
+      if (runId === searchRunId) searchInput.classList.remove('is-filtering');
+    }, SEARCH_DEBOUNCE_MS);
   });
   searchBar.appendChild(searchInput);
   stickyHeader.appendChild(searchBar);
@@ -133,7 +223,7 @@ async function init() {
 
   layout.insertBefore(stickyHeader, layout.firstChild);
 
-  renderClustersSection();
+  renderClustersSection({ filteredGems: searchFilteredGems });
 
   const panel = document.createElement('aside');
   panel.className = 'compat-panel';

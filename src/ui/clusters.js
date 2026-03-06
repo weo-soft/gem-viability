@@ -150,6 +150,19 @@ export function countByStat(gemById, ids) {
 
 const PLACEHOLDER_COUNTS = { int: '—', str: '—', dex: '—', white: '—' };
 
+function cacheSet(countsCache, kind, id, counts) {
+  if (!countsCache) return;
+  const map = kind === 'active' ? countsCache.active : countsCache.support;
+  if (map && typeof map.set === 'function') map.set(id, counts);
+}
+
+function cacheGet(countsCache, kind, id) {
+  if (!countsCache) return undefined;
+  const map = kind === 'active' ? countsCache.active : countsCache.support;
+  if (!map || typeof map.get !== 'function') return undefined;
+  return map.get(id);
+}
+
 /**
  * @param {Object} counts
  * @param {HTMLElement} parent
@@ -176,7 +189,7 @@ function renderStatCountSpans(counts, parent, usePlaceholder = false, statOrder 
  * @param {{ filteredGems: Array, fullGems: Array, variantFilters: Object, updateOnlyKind?: 'active'|'support' }} ctx
  */
 export function updateClusterCountsInPlace(clustersEl, ctx) {
-  const { filteredGems, fullGems, variantFilters, updateOnlyKind } = ctx;
+  const { filteredGems, fullGems, variantFilters, updateOnlyKind, countsCache } = ctx;
   const allGems = fullGems ?? filteredGems;
   const gemById = new Map(allGems.map((g) => [g.id, g]));
   const filters = variantFilters || defaultFilters;
@@ -205,6 +218,8 @@ export function updateClusterCountsInPlace(clustersEl, ctx) {
       counts = countByStat(gemById, filteredIds);
     }
 
+    cacheSet(countsCache, kind, id, counts);
+
     for (const stat of statOrder) {
       const span = countWrap.querySelector(`[data-stat="${stat}"]`);
       if (span) span.textContent = String(counts[stat] ?? 0);
@@ -216,6 +231,8 @@ export function renderClusters(gems, onSelectGem, variantFilters, onVariantFilte
   const usePlaceholderForActiveCounts = options.usePlaceholderForActiveCounts === true;
   const usePlaceholderForSupportCounts = options.usePlaceholderForSupportCounts === true;
   const skipVariantFilters = options.skipVariantFilters === true;
+  const countsCache = options.countsCache;
+  const useCachedCountsOnly = options.useCachedCountsOnly === true;
   const container = document.createElement('div');
   container.className = 'gem-clusters';
   const allGems = fullGems ?? gems;
@@ -264,13 +281,17 @@ export function renderClusters(gems, onSelectGem, variantFilters, onVariantFilte
       ul.className = 'gem-list active-list';
       for (const g of actives) {
         let counts;
-        if (usePlaceholderForActiveCounts) {
+        const cached = cacheGet(countsCache, 'active', g.id);
+        if (cached) {
+          counts = cached;
+        } else if (usePlaceholderForActiveCounts || useCachedCountsOnly) {
           counts = PLACEHOLDER_COUNTS;
         } else {
           if (!supportsCache.has(g.id)) supportsCache.set(g.id, getSupportsForActive(g.id, allGems));
           const supportIds = supportsCache.get(g.id);
           const filteredSupportIds = filterIdsByVariantForSupports(gemById, supportIds, filters);
           counts = countByStat(gemById, filteredSupportIds);
+          cacheSet(countsCache, 'active', g.id, counts);
         }
 
         const li = document.createElement('li');
@@ -319,13 +340,17 @@ export function renderClusters(gems, onSelectGem, variantFilters, onVariantFilte
       ul.className = 'gem-list support-list';
       for (const g of supports) {
         let counts;
-        if (usePlaceholderForSupportCounts) {
+        const cached = cacheGet(countsCache, 'support', g.id);
+        if (cached) {
+          counts = cached;
+        } else if (usePlaceholderForSupportCounts || useCachedCountsOnly) {
           counts = PLACEHOLDER_COUNTS;
         } else {
           if (!activesCache.has(g.id)) activesCache.set(g.id, getActivesForSupport(g.id, allGems));
           const activeIds = activesCache.get(g.id);
           const filteredActiveIds = filterIdsByVariantForActives(gemById, activeIds, filters);
           counts = countByStat(gemById, filteredActiveIds);
+          cacheSet(countsCache, 'support', g.id, counts);
         }
 
         const li = document.createElement('li');
