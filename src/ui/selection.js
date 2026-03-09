@@ -6,7 +6,7 @@
 import { getSupportsForActive, getActivesForSupport } from '../compatibility.js';
 import { countByStat, STAT_COLORS, STAT_ORDER_COUNTS, STAT_ORDER_COUNTS_SUPPORT } from './clusters.js';
 import { renderEmptyState } from './empty-state.js';
-import { getGemIconUrl } from './icons.js';
+import { setGemIconSrc } from './icons.js';
 import { createWikiLink } from '../utils/wiki.js';
 
 const defaultVariantFilters = { normal: true, transfigured: true, vaal: true, normalSupport: true, awakened: true, trarthus: true, exceptional: true, legacy: true, recipeOnly: true };
@@ -31,6 +31,7 @@ function filterIdsByVariantForSupports(gemById, ids, variantFilters) {
     const g = gemById.get(id);
     if (!g) return false;
     const v = g.variant || 'normal';
+    if (g.exceptional && filters.exceptional === true) return true;
     if (v === 'normal') {
       if (filters.normalSupport === false) return false;
     } else if (filters[v] === false) {
@@ -52,7 +53,7 @@ function renderSelectedGemBlock(gem) {
   block.className = 'compat-panel-selected';
   const img = document.createElement('img');
   img.className = 'gem-icon';
-  img.src = getGemIconUrl(gem);
+  setGemIconSrc(img, gem);
   img.alt = `${gem.name} icon`;
   const span = document.createElement('span');
   span.className = 'gem-label';
@@ -121,7 +122,7 @@ export function updateCompatibilityPanel(selectedGem, gems, panelEl, variantFilt
           const li = document.createElement('li');
           const img = document.createElement('img');
           img.className = 'gem-icon';
-          img.src = getGemIconUrl(g);
+          setGemIconSrc(img, g);
           img.alt = `${g.name} icon`;
           const span = document.createElement('span');
           span.className = 'gem-label';
@@ -150,7 +151,7 @@ export function updateCompatibilityPanel(selectedGem, gems, panelEl, variantFilt
           const li = document.createElement('li');
           const img = document.createElement('img');
           img.className = 'gem-icon';
-          img.src = getGemIconUrl(g);
+          setGemIconSrc(img, g);
           img.alt = `${g.name} icon`;
           const span = document.createElement('span');
           span.className = 'gem-label';

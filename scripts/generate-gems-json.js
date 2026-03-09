@@ -64,6 +64,9 @@ const LEGACY_GEM_IDS = new Set(['SupportItemQuantity']);
 /** Support gems that exist only from recipes (e.g. vendor/bench), not as drops. */
 const RECIPE_ONLY_GEM_IDS = new Set(['SupportElementalPenetration', 'SupportBlockChanceReduction']);
 
+/** Support gems with level requirement >= this at gem level 1 are treated as exceptional. */
+const EXCEPTIONAL_LEVEL_REQUIREMENT = 72;
+
 function extractSkillBlocks(content) {
   const blocks = [];
   const re = /skills\["([^"]+)"\]\s*=\s*\{/g;
@@ -113,6 +116,26 @@ function extractSkillTypesFromTable(block, tableName) {
   return extractSkillTypes(inner);
 }
 
+/** Get levelRequirement at gem level 1 from a skill block, or null if not found. */
+function getLevel1Requirement(block) {
+  const levelsContent = extractTableContent(block, 'levels');
+  if (!levelsContent) return null;
+  const level1Start = levelsContent.match(/\[\s*1\s*\]\s*=\s*\{/);
+  if (!level1Start) return null;
+  const start = levelsContent.indexOf(level1Start[0]) + level1Start[0].length;
+  let depth = 1;
+  let pos = start;
+  while (pos < levelsContent.length && depth > 0) {
+    const c = levelsContent[pos];
+    if (c === '{') depth++;
+    else if (c === '}') depth--;
+    pos++;
+  }
+  const level1Block = levelsContent.slice(start, pos - 1);
+  const m = level1Block.match(/levelRequirement\s*=\s*(\d+)/);
+  return m ? parseInt(m[1], 10) : null;
+}
+
 function parseSkill(id, block) {
   const nameMatch = block.match(/name\s*=\s*"([^"]*)"/);
   const colorMatch = block.match(/color\s*=\s*(\d+)/);
@@ -124,9 +147,9 @@ function parseSkill(id, block) {
   // Derive variant information
   let variant = 'normal';
   let exceptional = false;
-  // Support awakened versions use plusVersionOf
-  const plusMatch = block.match(/plusVersionOf\s*=\s*"([^"]+)"/);
-  if (plusMatch && isSupport) {
+  // Support: awakened only if "Awakened" is in the name (not plusVersionOf)
+  const isAwakenedByName = isSupport && /Awakened/.test(name);
+  if (isAwakenedByName) {
     variant = 'awakened';
   } else if (/ of Trarthus$/i.test(name)) {
     variant = 'trarthus';
@@ -141,17 +164,18 @@ function parseSkill(id, block) {
     }
   }
 
-  // Exceptional support gems: Enlighten, Enhance, Empower and their Awakened versions
+  // Exceptional support gems: only the base trio (Enlighten/Enhance/Empower) or non-awakened gems with level 72+.
+  // Only gems with "Awakened" in the name are awakened; others (e.g. Greater Unleash, Hextoad) are not.
   if (isSupport) {
     const exceptionalBaseNames = ['Enlighten', 'Enhance', 'Empower'];
     const isExceptionalBase = exceptionalBaseNames.includes(name);
-    const isExceptionalAwakened =
-      variant === 'awakened' &&
-      (name === 'Awakened Enlighten' || name === 'Awakened Enhance' || name === 'Awakened Empower');
+    const level1Req = getLevel1Requirement(block);
+    const isExceptionalByLevel =
+      !isAwakenedByName && level1Req !== null && level1Req >= EXCEPTIONAL_LEVEL_REQUIREMENT;
     if (isExceptionalBase) {
       variant = 'exceptional';
       exceptional = true;
-    } else if (isExceptionalAwakened) {
+    } else if (isExceptionalByLevel) {
       exceptional = true;
     }
   }

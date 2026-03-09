@@ -1,4 +1,4 @@
-import { getGemIconUrl } from './icons.js';
+import { setGemIconSrc } from './icons.js';
 import { getSupportsForActive, getActivesForSupport } from '../compatibility.js';
 import { createWikiLink } from '../utils/wiki.js';
 
@@ -96,6 +96,7 @@ function filterByVariantForSupport(list, variantFilters) {
   const filters = variantFilters || defaultFilters;
   return list.filter((g) => {
     const v = g.variant || 'normal';
+    if (g.exceptional && filters.exceptional === true) return true;
     if (v === 'normal') {
       if (filters.normalSupport === false) return false;
     } else if (filters[v] === false) {
@@ -126,6 +127,7 @@ function filterIdsByVariantForSupports(gemById, ids, variantFilters) {
     const g = gemById.get(id);
     if (!g) return false;
     const v = g.variant || 'normal';
+    if (g.exceptional && filters.exceptional === true) return true;
     if (v === 'normal') {
       if (filters.normalSupport === false) return false;
     } else if (filters[v] === false) {
@@ -303,7 +305,7 @@ export function renderClusters(gems, onSelectGem, variantFilters, onVariantFilte
 
         const img = document.createElement('img');
         img.className = 'gem-icon';
-        img.src = getGemIconUrl(g);
+        setGemIconSrc(img, g);
         img.alt = `${g.name} icon`;
 
         const span = document.createElement('span');
@@ -362,7 +364,7 @@ export function renderClusters(gems, onSelectGem, variantFilters, onVariantFilte
 
         const img = document.createElement('img');
         img.className = 'gem-icon';
-        img.src = getGemIconUrl(g);
+        setGemIconSrc(img, g);
         img.alt = `${g.name} icon`;
 
         const span = document.createElement('span');
