@@ -24,6 +24,16 @@ export const EXCLUDED_SECONDARY_ACTIVE_SKILL_IDS = new Set([
   'SupportBluntWeaponShockwave',
   'TriggeredSupportWindburst', // triggered half of Windburst only; SupportWindburst is the regular support
   'ThunderstormMiniTornados', // Thunderburst
+  // New support-gem secondary actives (triggered/granted skills)
+  'TriggeredSupportFoulgrasp', // Foulgrasp
+  'TriggeredSupportHextoad', // Bursting Toad
+  'TriggeredSupportHiveborn', // Summon Hiveborn
+  'TriggeredSupportGreaterKineticInstability', // Kinetic Flux (Greater variant)
+  'TriggeredSupportBonespire', // Seize the Flesh
+  'TriggeredSupportFissure', // Fissure
+  'TriggeredSupportPyre', // Call the Pyre
+  'TriggeredSupportVoidShockwave', // Void Shockwave
+  'TriggeredSupportVoidstorm', // Voidstorm
   // Secondary supports (triggered/granted half of dual-skill gems; same display name as primary)
   'SupportAutomation', // Automation
   'SupportAutoexertion', // Autoexertion
