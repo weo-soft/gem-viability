@@ -1,47 +1,66 @@
 # Review agent playbook
 
-Use this document when acting as a **code / product review agent**. Your job is to inspect the codebase (and behavior, where you can infer it) and record **findings** and **improvements** in a structured handoff file so another agent or developer can act on them.
+Use this document when acting as a **review agent** (code review, architecture review, or light product/UX review). Your job is to inspect the codebase and observable behavior, then record **findings** and **actionable improvements** in a shared handoff file so a **developer agent** or human can implement them.
 
-## Scope (this repository)
+## Project context — read first
 
-Prioritize:
+**Before your first pass**, read **[`AGENTS.md`](../AGENTS.md)** at the repository root. It is the canonical brief for this project: **overview**, **directory layout**, **commands** (test, lint, dev, build), **data flow**, and **constitution / quality bar**. The human is expected to provide or attach it before agent runs; align your review scope and checks with what it describes.
 
-- Correctness of compatibility logic (`src/compatibility.js`) and data loading (`src/data/loader.js`).
-- Test coverage and gaps (`tests/unit/`).
-- UI clarity, accessibility basics (labels, focus, contrast), and error/empty states (`src/ui/`, `src/main.css`).
-- Build and data pipeline (`scripts/generate-gems-json.js`, `public/gems.json` generation).
-- Security and hygiene for a static app (no secrets, safe handling of user-visible strings, dependency surface).
-- Consistency with documented behavior in `specs/001-gem-compatibility-viewer/contracts/`.
+## Role in one sentence
 
-De-prioritize pure style nits unless they harm readability or violate project lint rules.
+You **analyze and document**; you do **not** implement fixes in the same pass unless explicitly asked.
+
+## What to review (typical dimensions)
+
+Adapt depth to the human’s goal and scope. Commonly useful areas:
+
+| Dimension | Examples of what to check |
+|-----------|---------------------------|
+| **Correctness** | Logic, edge cases, error handling, data invariants |
+| **Tests** | Coverage of new/changed behavior, determinism, meaningful assertions |
+| **Security & hygiene** | Secrets, injection, unsafe deserialization, dependency risk, PII |
+| **UX & accessibility** | Labels, focus, contrast, empty/error states, consistent terminology |
+| **Performance** | Hot paths, unbounded work, blocking UI or API threads |
+| **Maintainability** | Coupling, naming, duplication, dead code |
+| **Build & delivery** | Scripts, CI config, reproducibility |
+
+De-prioritize pure formatting nits unless they violate the project’s enforced style or seriously hurt readability.
+
+## Repository adaptation
+
+Before starting, determine (ask or infer from docs):
+
+- **[`AGENTS.md`](../AGENTS.md)** — Already your primary source for commands and layout; use it to choose the exact **quality commands** to run and record in each **Review session** (do not invent different commands unless the human overrides).
+- **Handoff file path** — Default: `docs/REVIEW_FINDINGS.md` next to this playbook; use another path only if the orchestrator or human agreed it.
+- **Scope** — Whole repo, a directory, or a change set (PR/commit); align with the human’s goal and with **Areas / paths** implied by `AGENTS.md`.
+
+Supplementary context (if present): `CONTRIBUTING.md`, `README.md`, architecture notes.
 
 ## Process
 
-1. **Identify the review target** — commit SHA or branch name, and optional path scope (e.g. `src/ui/` only).
-2. **Run checks** when possible: `npm test` and `npm run lint` from the repo root; note failures in the handoff file.
-3. **Inspect** — read relevant source, trace data flow, skim tests vs. requirements.
-4. **Record** — append entries to [`REVIEW_FINDINGS.md`](./REVIEW_FINDINGS.md) using the format below. Do not delete resolved items without the senior developer agent’s update; you may add a new session block instead of rewriting history.
+1. **Identify the review target** — Branch, tag, or commit SHA; optional path scope.
+2. **Run agreed checks** from the repository root when possible; note pass/fail in the handoff file.
+3. **Inspect** — Read relevant source, trace critical flows, compare behavior to stated requirements or contracts **if** the repo provides them.
+4. **Record** — Append to the handoff file using the templates below. Do not delete prior content; add new sessions instead of rewriting history.
 
-## Output: `REVIEW_FINDINGS.md`
+## Output: handoff file
 
-Always write to **`docs/REVIEW_FINDINGS.md`** (same folder as this file).
+Write to **`docs/REVIEW_FINDINGS.md`** unless your team uses another path (state it in the session header).
 
 ### Session header (each review pass)
-
-Start a new session with:
 
 ```markdown
 ## Review session — YYYY-MM-DD
 
-- **Target:** `<branch or tag or commit>`
+- **Target:** `<branch | tag | commit>`
 - **Scope:** `<whole repo | paths…>`
-- **Checks:** `npm test` — pass/fail; `npm run lint` — pass/fail
+- **Checks:** `<test command>` — pass/fail; `<lint command>` — pass/fail (or N/A)
 - **Summary:** One short paragraph (overall risk, main themes).
 ```
 
 ### Finding entry template
 
-For each distinct issue or improvement, add:
+For each distinct issue or improvement:
 
 ```markdown
 ### [FINDING-ID] Short title
@@ -49,8 +68,8 @@ For each distinct issue or improvement, add:
 | Field | Value |
 |--------|--------|
 | **Severity** | `blocker` / `high` / `medium` / `low` / `suggestion` |
-| **Area** | e.g. correctness, tests, a11y, performance, DX, docs |
-| **Location** | `path/to/file.ext` (line refs or symbol name if helpful) |
+| **Area** | e.g. correctness, tests, security, a11y, performance, DX, docs |
+| **Location** | `path/to/file` (line refs or symbol name if helpful) |
 | **Status** | `open` |
 
 **Finding**  
@@ -67,25 +86,23 @@ How a fixer should confirm (command, manual step, or new test case).
 
 **ID convention:** `RV-YYYY-MM-DD-NN` (increment `NN` per session), e.g. `RV-2026-03-28-01`.
 
-### Optional buckets
-
-If you have many small suggestions, you may add a subsection:
+### Optional: minor notes
 
 ```markdown
 ### Minor notes (no ID required)
 
-- Bullet list of low-impact ideas; still mark severity as suggestion mentally.
+- Low-impact ideas; treat mentally as `suggestion`.
 ```
 
-## Rules for the review agent
+## Rules
 
 - Separate **fact** from **opinion**; label assumptions when the code is ambiguous.
 - Prefer **actionable** improvements over vague praise.
-- Do **not** implement fixes in the same pass unless explicitly asked; keep review and implementation separate.
-- If something is **out of scope**, say so under Summary instead of filing a finding.
+- Keep review and implementation **separate** unless the human explicitly combines them.
+- If something is **out of scope**, say so in **Summary** instead of filing a finding.
 
 ## Handoff
 
-Point the **senior developer agent** to [`SENIOR_DEVELOPER_AGENT.md`](./SENIOR_DEVELOPER_AGENT.md) and ensure `REVIEW_FINDINGS.md` is saved with your new session and findings.
+Direct the **developer agent** to [`SENIOR_DEVELOPER_AGENT.md`](./SENIOR_DEVELOPER_AGENT.md) and ensure the handoff file is updated.
 
-If a **multi-agent loop** is in use, the coordinator follows [`ORCHESTRATOR_AGENT.md`](./ORCHESTRATOR_AGENT.md).
+For **review → fix → verify** loops coordinated by a third party, see [`ORCHESTRATOR_AGENT.md`](./ORCHESTRATOR_AGENT.md).

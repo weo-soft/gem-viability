@@ -1,11 +1,16 @@
 # Review findings (handoff)
 
-This file is the **single handoff artifact** between the [review agent](./REVIEW_AGENT.md) and the [senior developer agent](./SENIOR_DEVELOPER_AGENT.md). The [orchestrator agent](./ORCHESTRATOR_AGENT.md) may also append **Orchestrator run** summaries here to record multi-agent loops.
+Shared **handoff log** for multi-agent workflows. By default it lives at `docs/REVIEW_FINDINGS.md`; teams may use another path if the orchestrator declares it.
 
-- The **review agent** appends new **Review session** sections and **Finding** entries (`Status: open`).
-- The **senior developer agent** updates each finding with **Resolution** and sets **Status** to `resolved`, `partial`, or `wontfix`.
+**Project overview and commands:** read **[`AGENTS.md`](../AGENTS.md)** at the repo root **before** any agent pass; it is the canonical structure and quality brief and should be attached or in context when sessions start.
 
-Older sessions stay in the file for history; add new sessions **below** this introduction.
+| Role | Playbook | Writes here |
+|------|-----------|-------------|
+| **Review agent** | [REVIEW_AGENT.md](./REVIEW_AGENT.md) | **Review session** headers; **Finding** entries with `Status: open` |
+| **Senior developer agent** | [SENIOR_DEVELOPER_AGENT.md](./SENIOR_DEVELOPER_AGENT.md) | **Resolution** blocks; **Status** → `resolved`, `partial`, or `wontfix`; optional **Developer session** notes |
+| **Orchestrator agent** | [ORCHESTRATOR_AGENT.md](./ORCHESTRATOR_AGENT.md) | **Orchestrator run** summaries between rounds |
+
+Append new content **below** this introduction; keep history—do not delete prior sessions unless a human explicitly archives the file.
 
 ---
 
