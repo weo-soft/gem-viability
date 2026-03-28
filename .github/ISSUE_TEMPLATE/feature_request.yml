@@ -1,0 +1,19 @@
+name: Feature request
+description: Suggest an improvement or new behavior
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or goal
+      description: What user need or pain point should this address?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed approach
+      description: How would you like it to work? (Ideas welcome; maintainers may adjust scope.)
+    validations:
+      required: true

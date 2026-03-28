@@ -54,8 +54,11 @@ npm run lint
 | Build script for JSON | `scripts/generate-gems-json.js` |
 | Unit tests | `tests/unit/` |
 
-More detail for contributors: 
-Notes for AI assistants and automation: [AGENTS.md](AGENTS.md).
+More detail for contributors: [AGENTS.md](AGENTS.md) (also used by AI tooling).
+
+## Contributing
+
+Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, tests, and PR expectations. This project follows the [Code of Conduct](CODE_OF_CONDUCT.md). To report security issues privately, see [SECURITY.md](SECURITY.md).
 
 ## License
 

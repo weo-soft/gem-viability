@@ -1,9 +1,18 @@
 {
   "name": "skill-support-compatibility-viewer",
   "version": "0.1.0",
+  "description": "Static web app to browse Path of Exile–style skill and support gems and their compatibility",
   "license": "MIT",
   "private": true,
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/weo-soft/gem-viability.git"
+  },
+  "bugs": {
+    "url": "https://github.com/weo-soft/gem-viability/issues"
+  },
+  "homepage": "https://gem-viability.weosoft.org/",
   "scripts": {
     "dev": "node scripts/generate-gems-json.js && vite",
     "build": "node scripts/generate-gems-json.js && vite build",
