@@ -57,6 +57,10 @@ npm run lint
 More detail for contributors: 
 Notes for AI assistants and automation: [AGENTS.md](AGENTS.md).
 
+## License
+
+This project’s application code and documentation are licensed under the [MIT License](LICENSE). Lua gem data under `skill-data/` (and generated `public/gems.json`) is attributed under the same terms as [Path of Building Community](https://github.com/PathOfBuildingCommunity/PathOfBuilding); see [NOTICE](NOTICE).
+
 ## Data and disclaimers
 
 Gem data in `skill-data/` is derived from or aligned with **Path of Exile** content for tooling and learning. This project is an independent fan tool and is **not** affiliated with or endorsed by Grinding Gear Games. *Path of Exile* is a trademark of Grinding Gear Games.
