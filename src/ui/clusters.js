@@ -1,6 +1,15 @@
 import { setGemIconSrc } from './icons.js';
 import { getSupportsForActive, getActivesForSupport } from '../compatibility.js';
 import { createWikiLink } from '../utils/wiki.js';
+import {
+  isActiveVariant,
+  defaultVariantFilters as defaultFilters,
+  ACTIVE_VARIANTS,
+  filterIdsByVariantForActives,
+  filterIdsByVariantForSupports,
+} from './variant-filter-helpers.js';
+
+export { isActiveVariant };
 
 /** Render gem clusters by Int/Str/Dex with global variant filter checkboxes (normal, transfigured, vaal, awakened, trarthus, exceptional, legacy, recipeOnly). */
 const STAT_ORDER = ['int', 'str', 'dex', 'white'];
@@ -36,15 +45,6 @@ const VARIANT_GROUPS = [
     ],
   },
 ];
-
-const defaultFilters = { normal: true, transfigured: true, vaal: true, normalSupport: true, awakened: true, trarthus: true, exceptional: true, legacy: true, recipeOnly: true };
-
-/** Variants that apply to active gems only. Toggling these affects which actives are shown and support gem counts. */
-const ACTIVE_VARIANTS = ['normal', 'transfigured', 'vaal', 'trarthus'];
-
-export function isActiveVariant(variant) {
-  return ACTIVE_VARIANTS.includes(variant);
-}
 
 function noopVariantFilter() {}
 
@@ -95,37 +95,6 @@ function filterByVariantForActive(list, variantFilters) {
 function filterByVariantForSupport(list, variantFilters) {
   const filters = variantFilters || defaultFilters;
   return list.filter((g) => {
-    const v = g.variant || 'normal';
-    if (g.exceptional && filters.exceptional === true) return true;
-    if (v === 'normal') {
-      if (filters.normalSupport === false) return false;
-    } else if (filters[v] === false) {
-      return false;
-    }
-    if (g.exceptional && filters.exceptional === false) return false;
-    return true;
-  });
-}
-
-/** Filter active gem ids by active variant filters only. Uses Map for O(1) lookups. */
-function filterIdsByVariantForActives(gemById, ids, variantFilters) {
-  const filters = variantFilters || defaultFilters;
-  return ids.filter((id) => {
-    const g = gemById.get(id);
-    if (!g) return false;
-    const v = g.variant || 'normal';
-    if (!ACTIVE_VARIANTS.includes(v)) return true;
-    if (filters[v] === false) return false;
-    return true;
-  });
-}
-
-/** Filter support gem ids by support variant filters only. Uses Map for O(1) lookups. */
-function filterIdsByVariantForSupports(gemById, ids, variantFilters) {
-  const filters = variantFilters || defaultFilters;
-  return ids.filter((id) => {
-    const g = gemById.get(id);
-    if (!g) return false;
     const v = g.variant || 'normal';
     if (g.exceptional && filters.exceptional === true) return true;
     if (v === 'normal') {
@@ -315,13 +284,12 @@ export function renderClusters(gems, onSelectGem, variantFilters, onVariantFilte
         const wikiLink = createWikiLink(g.name, g.kind);
         wikiLink.addEventListener('click', (e) => e.stopPropagation());
 
-        btn.appendChild(img);
-        btn.appendChild(span);
-        btn.appendChild(wikiLink);
-
         const countWrap = document.createElement('span');
         countWrap.className = 'gem-chip-counts';
         renderStatCountSpans(counts, countWrap, usePlaceholderForActiveCounts);
+        btn.appendChild(img);
+        btn.appendChild(span);
+        btn.appendChild(wikiLink);
         btn.appendChild(countWrap);
 
         btn.addEventListener('click', () => onSelectGem(g.id, g.kind));
@@ -374,13 +342,12 @@ export function renderClusters(gems, onSelectGem, variantFilters, onVariantFilte
         const wikiLink = createWikiLink(g.name, g.kind);
         wikiLink.addEventListener('click', (e) => e.stopPropagation());
 
-        btn.appendChild(img);
-        btn.appendChild(span);
-        btn.appendChild(wikiLink);
-
         const countWrap = document.createElement('span');
         countWrap.className = 'gem-chip-counts';
         renderStatCountSpans(counts, countWrap, usePlaceholderForSupportCounts, STAT_ORDER_COUNTS_SUPPORT);
+        btn.appendChild(img);
+        btn.appendChild(span);
+        btn.appendChild(wikiLink);
         btn.appendChild(countWrap);
 
         btn.addEventListener('click', () => onSelectGem(g.id, g.kind));

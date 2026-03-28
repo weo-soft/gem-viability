@@ -8,39 +8,7 @@ import { countByStat, STAT_COLORS, STAT_ORDER_COUNTS, STAT_ORDER_COUNTS_SUPPORT 
 import { renderEmptyState } from './empty-state.js';
 import { setGemIconSrc } from './icons.js';
 import { createWikiLink } from '../utils/wiki.js';
-
-const defaultVariantFilters = { normal: true, transfigured: true, vaal: true, normalSupport: true, awakened: true, trarthus: true, exceptional: true, legacy: true, recipeOnly: true };
-
-const ACTIVE_VARIANTS = ['normal', 'transfigured', 'vaal', 'trarthus'];
-
-function filterIdsByVariantForActives(gemById, ids, variantFilters) {
-  const filters = variantFilters || defaultVariantFilters;
-  return ids.filter((id) => {
-    const g = gemById.get(id);
-    if (!g) return false;
-    const v = g.variant || 'normal';
-    if (!ACTIVE_VARIANTS.includes(v)) return true;
-    if (filters[v] === false) return false;
-    return true;
-  });
-}
-
-function filterIdsByVariantForSupports(gemById, ids, variantFilters) {
-  const filters = variantFilters || defaultVariantFilters;
-  return ids.filter((id) => {
-    const g = gemById.get(id);
-    if (!g) return false;
-    const v = g.variant || 'normal';
-    if (g.exceptional && filters.exceptional === true) return true;
-    if (v === 'normal') {
-      if (filters.normalSupport === false) return false;
-    } else if (filters[v] === false) {
-      return false;
-    }
-    if (g.exceptional && filters.exceptional === false) return false;
-    return true;
-  });
-}
+import { filterIdsByVariantForActives, filterIdsByVariantForSupports } from './variant-filter-helpers.js';
 
 /**
  * @param {{ id: string, kind: string } | null} selectedGem

@@ -65,10 +65,15 @@ async function filterGemsBySearchAsync(all, query, runId) {
 }
 
 function showError(message, canRetry = true) {
-  app.innerHTML = '';
+  app.replaceChildren();
   const err = document.createElement('div');
   err.className = 'error-state';
-  err.innerHTML = `<p><strong>Error</strong>: ${message}</p>`;
+  const p = document.createElement('p');
+  const strong = document.createElement('strong');
+  strong.textContent = 'Error';
+  p.appendChild(strong);
+  p.appendChild(document.createTextNode(`: ${message}`));
+  err.appendChild(p);
   if (canRetry) {
     const retry = document.createElement('button');
     retry.type = 'button';
@@ -113,7 +118,7 @@ async function init() {
     support: new Map(),
   };
 
-  app.innerHTML = '';
+  app.replaceChildren();
 
   const layout = document.createElement('div');
   layout.className = 'layout';
@@ -187,6 +192,7 @@ async function init() {
   const searchInput = document.createElement('input');
   searchInput.type = 'search';
   searchInput.className = 'search-input';
+  searchInput.setAttribute('aria-label', 'Filter gems by name');
   searchInput.placeholder = 'Search gem name...';
   searchInput.value = searchQuery;
   searchInput.autocomplete = 'off';
