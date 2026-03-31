@@ -11,7 +11,11 @@ import {
 
 export { isActiveVariant };
 
-/** Render gem clusters by Int/Str/Dex with global variant filter checkboxes (normal, transfigured, vaal, awakened, trarthus, exceptional, legacy, recipeOnly). */
+/**
+ * Render gem clusters by Int/Str/Dex with global variant filter checkboxes (normal, transfigured, vaal, awakened, trarthus, exceptional, legacy, recipeOnly).
+ *
+ * **Wiki link inside the gem button:** Each row keeps the PoE wiki `<a>` inside the `<button>` on purpose (compact chip layout). The link handler calls `stopPropagation()` so choosing the gem and opening the wiki stay distinct. Do not “fix” nested interactives by moving the link out unless product explicitly asks — see `AGENTS.md` (UI design decisions).
+ */
 const STAT_ORDER = ['int', 'str', 'dex', 'white'];
 const STAT_LABELS = { int: 'Intelligence', str: 'Strength', dex: 'Dexterity', white: 'White' };
 export const STAT_COLORS = { int: '#3366cc', str: '#cc3333', dex: '#33cc33', white: '#999999' };

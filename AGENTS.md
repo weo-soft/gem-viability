@@ -120,6 +120,10 @@ This constitution supersedes ad-hoc practices for this project. Work must align 
 - Do not add heavy runtime dependencies without a strong reason (see constitution).
 - Regenerate `public/gems.json` via `scripts/generate-gems-json.js` (e.g. through `npm run dev` / `npm run build`), not by hand for routine work.
 
+### UI design decisions (do not change without an explicit product decision)
+
+- **Cluster gem rows (`src/ui/clusters.js`):** The PoE wiki link (`<a class="gem-wiki-link">`) is **intentionally nested inside** the gem `<button>` so each gem stays a single compact chip; the link uses `stopPropagation()` so activating the row for selection and opening the wiki remain separate. **Do not refactor** to a sibling button-plus-link layout to satisfy “nested interactive” lint rules unless stakeholders explicitly request that tradeoff.
+
 ## Recent feature context
 
 - **Gem compatibility viewer**: Vite + vanilla JS viewer, gem JSON from Lua, cluster UI (Int/Str/Dex), compatibility panel for active ↔ support selection.

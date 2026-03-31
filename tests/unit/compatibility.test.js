@@ -23,6 +23,19 @@ describe('getSupportsForActive', () => {
     expect(getSupportsForActive('Cleave', fixtureGems)).toContain('SupportSpellOrAttack');
   });
 
+  it('uses requireSkillTypesAlternatives when present (any alternative list may satisfy)', () => {
+    const supportEither = {
+      id: 'SupportEitherSpellOrAttack',
+      kind: 'support',
+      requireSkillTypesAlternatives: [['Spell'], ['Attack']],
+      excludeSkillTypes: [],
+      primaryStat: 'dex',
+    };
+    const gems = [...fixtureGems, supportEither];
+    expect(getSupportsForActive('Fireball', gems)).toContain('SupportEitherSpellOrAttack');
+    expect(getSupportsForActive('Cleave', gems)).toContain('SupportEitherSpellOrAttack');
+  });
+
   it('treats requireSkillTypes with AND as all listed types must match', () => {
     const supportSpellAndTrigger = {
       id: 'SupportSpellTrigger',
@@ -136,6 +149,65 @@ describe('getSupportsForActive', () => {
     const gems = [...fixtureGems, raiseZombie, supportMultistrike];
     const supports = getSupportsForActive('RaiseZombie', gems);
     expect(supports).toContain('SupportMultistrike');
+  });
+
+  it('only excludes if excluded type is in both wrapper and minion types (e.g. Second Wind + Holy Relic)', () => {
+    const summonHolyRelic = {
+      id: 'SummonHolyRelic',
+      kind: 'active',
+      skillTypes: ['Spell', 'Minion', 'CreatesMinion', 'Triggerable', 'Cooldown'],
+      minionSkillTypes: ['Spell', 'Area', 'Triggered', 'Physical'],
+      primaryStat: 'int',
+    };
+    const supportSecondWind = {
+      id: 'SupportSecondWind',
+      kind: 'support',
+      requireSkillTypes: ['Cooldown'],
+      excludeSkillTypes: ['Triggered'],
+      primaryStat: 'dex',
+    };
+    const gems = [...fixtureGems, summonHolyRelic, supportSecondWind];
+    const supports = getSupportsForActive('SummonHolyRelic', gems);
+    expect(supports).toContain('SupportSecondWind');
+  });
+
+  it('excludes wrapper-only tags (e.g. Minion) for trigger supports even when minion payload omits them (Cast on Death + Holy Relic)', () => {
+    const summonHolyRelic = {
+      id: 'SummonHolyRelic',
+      kind: 'active',
+      skillTypes: ['Spell', 'Minion', 'CreatesMinion', 'Triggerable', 'Cooldown'],
+      minionSkillTypes: ['Spell', 'Area', 'Triggered', 'Physical'],
+      primaryStat: 'int',
+    };
+    const supportCastOnDeath = {
+      id: 'SupportCastOnDeath',
+      kind: 'support',
+      requireSkillTypes: ['Spell', 'Triggerable', 'AND'],
+      excludeSkillTypes: ['Minion', 'Trapped', 'RemoteMined', 'SummonsTotem', 'Aura', 'InbuiltTrigger', 'DisallowTriggerSupports'],
+      primaryStat: 'dex',
+    };
+    const gems = [...fixtureGems, summonHolyRelic, supportCastOnDeath];
+    expect(getSupportsForActive('SummonHolyRelic', gems)).not.toContain('SupportCastOnDeath');
+  });
+
+  it('excludes when excluded type is in both wrapper and minion types', () => {
+    const minionSkill = {
+      id: 'SomeMinionSkill',
+      kind: 'active',
+      skillTypes: ['Spell', 'Minion', 'CreatesMinion', 'Triggered'],
+      minionSkillTypes: ['Spell', 'Triggered'],
+      primaryStat: 'int',
+    };
+    const supportNoTriggered = {
+      id: 'SupportNoTriggered',
+      kind: 'support',
+      requireSkillTypes: ['Spell'],
+      excludeSkillTypes: ['Triggered'],
+      primaryStat: 'dex',
+    };
+    const gems = [...fixtureGems, minionSkill, supportNoTriggered];
+    const supports = getSupportsForActive('SomeMinionSkill', gems);
+    expect(supports).not.toContain('SupportNoTriggered');
   });
 
   it('ignores minionSkillTypes when support has ignoreMinionTypes: true', () => {

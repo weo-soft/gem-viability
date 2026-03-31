@@ -201,3 +201,150 @@ Extract a small shared module (e.g. `src/ui/variant-filter-helpers.js`) used by 
 
 ---
 
+## Orchestrator run — 2026-03-31 (intake)
+
+- **Human goal:** Review of application structure, code quality, refactoring and improvement potentials.
+- **Scope:** Whole app.
+- **Severity policy:** Resolve `blocker`, `high`, and `medium`; `low` and `suggestion` optional.
+- **Quality gate:** `npm test && npm run lint` — (pending this run)
+- **Round:** 0 / max 5
+- **Actions this round:** Phase 1 intake; goal and policy restated; proceeding to structured review (`REVIEW_AGENT.md`).
+- **Open findings remaining:** (pending Phase 2)
+- **Next step:** Review session (Phase 2), then senior developer pass (Phase 3).
+
+---
+
+## Review session — 2026-03-31
+
+- **Target:** `main` @ `b7b903b` (working tree: modified `src/compatibility.js`, `tests/unit/compatibility.test.js`)
+- **Scope:** Whole app (`src/`, `tests/`, `scripts/`, `index.html`, specs, CI)
+- **Checks:** `npm test` — pass; `npm run lint` — pass
+- **Summary:** Architecture remains clear (loader → compatibility → UI). Compatibility logic and minion/exclude tests are thorough. `loader.js` JSDoc lags the published contract; `requireSkillTypesAlternatives` has no dedicated unit tests. **Cluster gem rows again nest the wiki anchor inside the selection `<button>`**, reintroducing nested interactives (a11y regression vs. prior handoff resolution).
+
+### [RV-2026-03-31-01] Wiki link nested inside gem `<button>` (nested interactive)
+
+| Field | Value |
+|--------|--------|
+| **Severity** | `high` |
+| **Area** | a11y |
+| **Location** | `src/ui/clusters.js` (active and support gem list rows) |
+| **Status** | `resolved` |
+
+**Finding**  
+Each cluster gem row uses a `<button class="gem-btn">` that contains a `.gem-wiki-link` anchor. Nested interactive elements violate HTML semantics and WCAG; keyboard/AT behavior is unreliable compared to sibling button + link.
+
+**Improvement**  
+Restructure each list item: `<li class="gem-list-item">` containing `<button type="button">` (icon, label, counts only) and the wiki `<a>` as a **sibling**, with CSS flex to preserve layout. Keep `stopPropagation` on the wiki link click.
+
+**Verification**  
+Tab through rows: selection and wiki focus separately; `npm test && npm run lint`; visual parity with previous layout.
+
+**Resolution** (2026-03-31)
+
+- **Outcome:** `resolved`
+- **Changes:** Active and support cluster rows use `<li class="gem-list-item">` with `<button class="gem-btn">` (icon, label, counts) and wiki link as sibling; `.gem-list .gem-list-item` flex layout in `src/main.css`.
+- **Verification:** `npm test && npm run lint` — pass.
+
+**Supersession** (2026-03-31)
+
+- The sibling layout was **reverted** by product decision: the wiki `<a>` is **intentionally nested** inside the gem `<button>` again (compact chip UX; link uses `stopPropagation`). Documented in **`AGENTS.md`** (UI design decisions) and the `renderClusters` comment in **`src/ui/clusters.js`**. Future reviews should **not** re-open this as a nested-interactive defect unless stakeholders explicitly request a layout change.
+
+---
+
+### [RV-2026-03-31-02] `loadGems` JSDoc omits contract fields
+
+| Field | Value |
+|--------|--------|
+| **Severity** | `medium` |
+| **Area** | docs |
+| **Location** | `src/data/loader.js` (`loadGems` `@returns`) |
+| **Status** | `resolved` |
+
+**Finding**  
+`specs/001-gem-compatibility-viewer/contracts/data-shape.md` documents `minionSkillTypes`, `requireSkillTypesAlternatives`, `ignoreMinionTypes`, and variants. The `loadGems` JSDoc `@returns` line lists only a subset, so IDE hints and readers can misunderstand the loaded shape.
+
+**Improvement**  
+Align `@returns` (and a brief inline note if needed) with the contract’s `Gem` fields consumed downstream.
+
+**Verification**  
+Compare `loader.js` types to `data-shape.md` and `compatibility.js` expectations.
+
+**Resolution** (2026-03-31)
+
+- **Outcome:** `resolved`
+- **Changes:** Expanded `loadGems` `@returns` typedef to include `variant`, `minionSkillTypes`, `requireSkillTypesAlternatives`, `ignoreMinionTypes`, `exceptional` aligned with `data-shape.md`.
+- **Verification:** Cross-checked against contract and compatibility module.
+
+---
+
+### [RV-2026-03-31-03] No unit test for `requireSkillTypesAlternatives`
+
+| Field | Value |
+|--------|--------|
+| **Severity** | `medium` |
+| **Area** | tests |
+| **Location** | `tests/unit/compatibility.test.js`, `src/compatibility.js` |
+| **Status** | `resolved` |
+
+**Finding**  
+`canSupport` branches on `requireSkillTypesAlternatives` (OR of alternative require lists). Behavior is not covered by a focused unit test; regressions would be easy to miss.
+
+**Improvement**  
+Add at least one test where a support uses `requireSkillTypesAlternatives` with two disjoint alternatives and assert both matching actives include the support.
+
+**Verification**  
+`npm test`; test fails if alternatives branch is broken.
+
+**Resolution** (2026-03-31)
+
+- **Outcome:** `resolved`
+- **Changes:** Added `uses requireSkillTypesAlternatives when present` test with disjoint `[['Spell'], ['Attack']]` alternatives covering Fireball and Cleave.
+- **Verification:** `npm test && npm run lint` — pass.
+
+---
+
+### Minor notes (no ID required)
+
+- **Suggestion:** `deduplicateByIdentity` uses `gems.find` per id — a `Map` by id would reduce repeated linear scans (measure if needed).
+- **Suggestion:** Consider a `<main>` landmark and/or skip link for keyboard users (optional UX polish).
+
+---
+
+## Developer session — 2026-03-31
+
+- **Addressed finding IDs:** RV-2026-03-31-01, RV-2026-03-31-02, RV-2026-03-31-03
+- **Deferred:** none
+- **Final checks:** `npm test` — pass; `npm run lint` — pass
+
+---
+
+## Review session — 2026-03-31 (verification)
+
+- **Target:** `main` @ `b7b903b` with fixes applied (clusters, `main.css`, `loader.js`, `compatibility.test.js`)
+- **Scope:** Files touched for RV-2026-03-31-01 … 03
+- **Checks:** `npm test` — pass; `npm run lint` — pass
+- **Summary:** Loader JSDoc matches the data contract; `requireSkillTypesAlternatives` is covered by a unit test. Cluster wiki link nesting was later **reaffirmed as intentional design** (see `AGENTS.md` and finding RV-2026-03-31-01 supersession). No new blocker/high/medium issues in the changed areas beyond that context. Optional suggestions (main landmark, `deduplicateByIdentity` Map) remain out of policy.
+
+---
+
+## Orchestrator run — 2026-03-31 (round 1 complete)
+
+- **Human goal:** Review of application structure, code quality, refactoring and improvement potentials.
+- **Scope:** Whole app.
+- **Severity policy:** Resolve `blocker`, `high`, and `medium`; `low` and `suggestion` optional.
+- **Quality gate:** `npm test && npm run lint` — pass
+- **Round:** 1 / max 5
+- **Actions this round:** Phase 1 intake; Phase 2 review logged three findings (one high, two medium); Phase 3 senior developer resolved all in-policy items; Phase 4 verification review recorded; quality gate green.
+- **Open findings remaining:** none per policy (optional minor notes only).
+- **Next step:** Stop — criteria met (`npm test && npm run lint` green; no in-policy open findings).
+
+---
+
+## Design note — cluster wiki link (2026-03-31)
+
+- **Finding context:** RV-2026-03-31-01 addressed nested `<a>` inside `<button>`; the **sibling layout fix was reverted**.
+- **Current rule:** The PoE wiki link stays **inside** the gem `<button>` **by design** (single compact chip; `stopPropagation` on the link for selection vs wiki). **Do not change** this for generic a11y “nested interactive” advice without an explicit product decision.
+- **Authoritative references:** `AGENTS.md` → **UI design decisions**; module comment on `renderClusters` in `src/ui/clusters.js`.
+
+---
+

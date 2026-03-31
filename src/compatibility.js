@@ -9,6 +9,23 @@
 
 const OPERATORS = new Set(['OR', 'AND', 'NOT']);
 
+/**
+ * Excludes that refer to the active gem / how it is used (wrapper `skillTypes`), not the delegated
+ * minion attack (`minionSkillTypes`). The payload often omits e.g. Minion or Trapped, so "both lists"
+ * matching alone would miss Cast on Death vs Summon Holy Relic.
+ * Not listed here: types like CreatesMinion or Triggered, where intersection semantics are needed
+ * (e.g. Multistrike + Raise Zombie, Second Wind + Holy Relic).
+ */
+const EXCLUDE_WRAPPER_ONLY_TYPES = new Set([
+  'Minion',
+  'Trapped',
+  'RemoteMined',
+  'SummonsTotem',
+  'Aura',
+  'InbuiltTrigger',
+  'DisallowTriggerSupports',
+]);
+
 function isOperator(t) {
   return OPERATORS.has(t);
 }
@@ -166,6 +183,8 @@ export function getActivesForSupport(supportId, gems) {
 function canSupport(active, support) {
   const typesForRequire = getActiveTypesForRequire(active, support);
   const typesForExclude = getActiveTypesForExclude(active, support);
+  const wrapperTypesForExclude = new Set(active.skillTypes || []);
+  const minionTypesForExclude = new Set(active.minionSkillTypes || []);
   const exclude = support.excludeSkillTypes || [];
   const requireMatch = support.requireSkillTypesAlternatives
     ? support.requireSkillTypesAlternatives.some((alt) =>
@@ -174,7 +193,20 @@ function canSupport(active, support) {
     : requireSkillTypesMatch(typesForRequire, support.requireSkillTypes || []);
   if (!requireMatch) return false;
   for (const e of exclude) {
-    if (!isOperator(e) && typesForExclude.has(e)) return false;
+    if (isOperator(e)) continue;
+    // If the active has a minion payload and the support doesn't ignore minion types:
+    // - wrapper-only tags (Minion, Trapped, …) exclude when present on the active gem wrapper;
+    // - other tags exclude only when present on BOTH wrapper and minion payload (payload-only tags
+    //   like Triggered on the relic nova do not block the wrapper gem).
+    if (!support.ignoreMinionTypes && minionTypesForExclude.size > 0) {
+      if (EXCLUDE_WRAPPER_ONLY_TYPES.has(e)) {
+        if (wrapperTypesForExclude.has(e)) return false;
+        continue;
+      }
+      if (wrapperTypesForExclude.has(e) && minionTypesForExclude.has(e)) return false;
+      continue;
+    }
+    if (typesForExclude.has(e)) return false;
   }
   return true;
 }
