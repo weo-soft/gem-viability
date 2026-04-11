@@ -3,8 +3,8 @@
 }
 
 :root {
-  /* Reserve space so sticky sidebar sits below the page header (search + version toggles) */
-  --sticky-header-height: 7rem;
+  /* Reserve space so sticky sidebar sits below the page header (site link + search + version toggles) */
+  --sticky-header-height: 8.25rem;
 }
 
 body {
@@ -37,6 +37,41 @@ body {
   background: #1a1a1a;
   padding-bottom: 1rem;
   border-bottom: 1px solid #333;
+}
+
+.site-bar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.github-project-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  color: #888;
+  text-decoration: none;
+}
+
+.github-project-link svg {
+  display: block;
+  flex-shrink: 0;
+}
+
+.github-project-link:hover {
+  color: #0a7ea4;
+}
+
+.github-project-link:hover .github-project-link-label {
+  text-decoration: underline;
+}
+
+.github-project-link:focus-visible {
+  outline: 2px solid #0a7ea4;
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 .search-filter-bar {
